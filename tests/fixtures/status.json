@@ -1,0 +1,235 @@
+{
+	"version": "0.1.0",
+	"ts": 1791115626,
+	"local": {
+		"hostname": "PPUC",
+		"distribution": "ImmortalWrt",
+		"model": "Banana Pi BPI-R4 (2x SFP+)",
+		"board_name": "bananapi,bpi-r4",
+		"board_path": "mediatek/filogic",
+		"target": "mediatek",
+		"subtarget": "filogic",
+		"arch": "aarch64_cortex-a53",
+		"version": "SNAPSHOT",
+		"version_id": "snapshot",
+		"version_kind": "snapshot",
+		"build_id": "r0-bf156b6",
+		"build_date": 1790666285,
+		"build_date_iso": "2026-09-29 07:18 UTC"
+	},
+	"config": {
+		"enabled": true,
+		"unattended": 0,
+		"interval": 24,
+		"webhook": "",
+		"active_source": "immortalwrt_official",
+		"sources": [
+			{
+				"name": "immortalwrt_official",
+				"label": "ImmortalWrt 官方",
+				"url": "https://downloads.immortalwrt.org",
+				"layout": "official",
+				"system": ""
+			},
+			{
+				"name": "shuery_bpi_r4",
+				"label": "Shuery BPI-R4 构建",
+				"url": "https://immortalwrt.shuery.lssa.fun",
+				"layout": "bin_targets_root",
+				"system": ""
+			},
+			{
+				"name": "rtfw",
+				"label": "RTFW 聚合站",
+				"url": "https://rtfw.shuery.lssa.fun",
+				"layout": "official",
+				"system": "immortalwrt"
+			}
+		]
+	},
+	"last": {
+		"ok": true,
+		"ts": 1791115332,
+		"version": "0.1.0",
+		"local": {
+			"hostname": "PPUC",
+			"distribution": "ImmortalWrt",
+			"model": "Banana Pi BPI-R4 (2x SFP+)",
+			"board_name": "bananapi,bpi-r4",
+			"board_path": "mediatek/filogic",
+			"target": "mediatek",
+			"subtarget": "filogic",
+			"arch": "aarch64_cortex-a53",
+			"version": "SNAPSHOT",
+			"version_id": "snapshot",
+			"version_kind": "snapshot",
+			"build_id": "r0-bf156b6",
+			"build_date": 1790666285,
+			"build_date_iso": "2026-09-29 07:18 UTC"
+		},
+		"remote": {
+			"ok": true,
+			"source": "immortalwrt_official",
+			"label": "ImmortalWrt 官方",
+			"url": "https://downloads.immortalwrt.org",
+			"layout": "official",
+			"system": "",
+			"channel": "snapshots",
+			"channel_origin": ".versions.json",
+			"channels": [
+				"snapshots",
+				"releases/25.12.2",
+				"releases/25.12.1",
+				"releases/25.12.0",
+				"releases/24.10.6",
+				"releases/24.10.5",
+				"releases/24.10.4",
+				"releases/24.10.3",
+				"releases/24.10.2",
+				"releases/24.10.1",
+				"releases/24.10.0",
+				"releases/23.05.7",
+				"releases/23.05.6",
+				"releases/23.05.4",
+				"releases/23.05.3",
+				"releases/23.05.2",
+				"releases/23.05.1",
+				"releases/23.05.0",
+				"releases/21.02.7",
+				"releases/21.02.6",
+				"releases/21.02.5",
+				"releases/21.02.4",
+				"releases/21.02.3",
+				"releases/21.02.1",
+				"releases/21.02.0"
+			],
+			"stable": "25.12.2",
+			"oldstable": "24.10.6",
+			"dir": "https://downloads.immortalwrt.org/snapshots/targets/mediatek/filogic",
+			"version_code": "r41386-45474b1733",
+			"version_number": "SNAPSHOT",
+			"source_date_epoch": 1789872820,
+			"source_date_iso": "2026-09-20 02:53 UTC",
+			"profile_name": "bananapi_bpi-r4",
+			"image": {
+				"filesystem": "squashfs",
+				"name": "immortalwrt-mediatek-filogic-bananapi_bpi-r4-squashfs-sysupgrade.itb",
+				"sha256": "8c71a872a6d9a69f0918a7adfda3d7515d1915595aba4e0d9bc1950edc33e8f6",
+				"sha256_unsigned": "8c71a872a6d9a69f0918a7adfda3d7515d1915595aba4e0d9bc1950edc33e8f6",
+				"size": 23593558,
+				"type": "sysupgrade"
+			},
+			"images": [
+				{
+					"filesystem": "initramfs",
+					"name": "immortalwrt-mediatek-filogic-bananapi_bpi-r4-initramfs-recovery.itb",
+					"sha256": "48ec4a254c1b91e93361900c09f573a9d457620dcaf171c714be5f35a0fcc85c",
+					"sha256_unsigned": "48ec4a254c1b91e93361900c09f573a9d457620dcaf171c714be5f35a0fcc85c",
+					"size": 20185088,
+					"type": "kernel"
+				},
+				{
+					"name": "immortalwrt-mediatek-filogic-bananapi_bpi-r4-sdcard.img.gz",
+					"sha256": "ab12037afe7b9b5a6ad67cf325bfaf4db94ec585c75c95205b0d2ee3b43a4ccb",
+					"sha256_unsigned": "ab12037afe7b9b5a6ad67cf325bfaf4db94ec585c75c95205b0d2ee3b43a4ccb",
+					"size": 45309706,
+					"type": "sdcard.img.gz"
+				},
+				{
+					"name": "immortalwrt-mediatek-filogic-bananapi_bpi-r4-snand-preloader.bin",
+					"sha256": "39656fe8ef9753ef5b7bf08018d56d2f34d9a254b39388a80f2c2aa55f5505bc",
+					"sha256_unsigned": "39656fe8ef9753ef5b7bf08018d56d2f34d9a254b39388a80f2c2aa55f5505bc",
+					"size": 197444,
+					"type": "snand-preloader.bin"
+				},
+				{
+					"name": "immortalwrt-mediatek-filogic-bananapi_bpi-r4-snand-preloader-8g.bin",
+					"sha256": "a4925942be1bfa7c579ff8676f75c82bfd69fe9018095037e1a4ad02368c5fe9",
+					"sha256_unsigned": "a4925942be1bfa7c579ff8676f75c82bfd69fe9018095037e1a4ad02368c5fe9",
+					"size": 197444,
+					"type": "snand-preloader-8g.bin"
+				},
+				{
+					"name": "immortalwrt-mediatek-filogic-bananapi_bpi-r4-emmc-bl31-uboot.fip",
+					"sha256": "4463f5febe2f1aeb4e728971d7b85bdbfd616911bcc8ac5e738c0a0a62de1dc4",
+					"sha256_unsigned": "4463f5febe2f1aeb4e728971d7b85bdbfd616911bcc8ac5e738c0a0a62de1dc4",
+					"size": 1241180,
+					"type": "emmc-bl31-uboot.fip"
+				},
+				{
+					"name": "immortalwrt-mediatek-filogic-bananapi_bpi-r4-emmc-gpt.bin",
+					"sha256": "3315fca0ac23992c58f555873617c4b3e7b776d8ee65832c4cb99f4cd68dad3f",
+					"sha256_unsigned": "3315fca0ac23992c58f555873617c4b3e7b776d8ee65832c4cb99f4cd68dad3f",
+					"size": 17408,
+					"type": "emmc-gpt.bin"
+				},
+				{
+					"name": "immortalwrt-mediatek-filogic-bananapi_bpi-r4-emmc-preloader.bin",
+					"sha256": "fe675818c8360316e86f6b83912e01e082e9bdec0540f5cd05871fbdbc126985",
+					"sha256_unsigned": "fe675818c8360316e86f6b83912e01e082e9bdec0540f5cd05871fbdbc126985",
+					"size": 180509,
+					"type": "emmc-preloader.bin"
+				},
+				{
+					"name": "immortalwrt-mediatek-filogic-bananapi_bpi-r4-snand-bl31-uboot.fip",
+					"sha256": "8a4161b113396b3a7e41128a7103567f886006dd3e54fb604b00e31a468af781",
+					"sha256_unsigned": "8a4161b113396b3a7e41128a7103567f886006dd3e54fb604b00e31a468af781",
+					"size": 1225868,
+					"type": "snand-bl31-uboot.fip"
+				},
+				{
+					"name": "immortalwrt-mediatek-filogic-bananapi_bpi-r4-sdcard_8g.img.gz",
+					"sha256": "1bd053bbde45e04950d570e7ba736920339a66fce0b28cf7fcfe069ec97f8f0b",
+					"sha256_unsigned": "1bd053bbde45e04950d570e7ba736920339a66fce0b28cf7fcfe069ec97f8f0b",
+					"size": 45310145,
+					"type": "sdcard_8g.img.gz"
+				},
+				{
+					"name": "immortalwrt-mediatek-filogic-bananapi_bpi-r4-emmc-preloader-8g.bin",
+					"sha256": "57843205d5ffd2e46d8c97ee367e7d960aa2ad78837b0b59c31eb863e6aae6ad",
+					"sha256_unsigned": "57843205d5ffd2e46d8c97ee367e7d960aa2ad78837b0b59c31eb863e6aae6ad",
+					"size": 180509,
+					"type": "emmc-preloader-8g.bin"
+				},
+				{
+					"filesystem": "squashfs",
+					"name": "immortalwrt-mediatek-filogic-bananapi_bpi-r4-squashfs-sysupgrade.itb",
+					"sha256": "8c71a872a6d9a69f0918a7adfda3d7515d1915595aba4e0d9bc1950edc33e8f6",
+					"sha256_unsigned": "8c71a872a6d9a69f0918a7adfda3d7515d1915595aba4e0d9bc1950edc33e8f6",
+					"size": 23593558,
+					"type": "sysupgrade"
+				}
+			],
+			"image_limit": 381681664,
+			"warnings": [],
+			"error": ""
+		},
+		"verdict": {
+			"state": "downgrade",
+			"label": "远端更旧（可降级）",
+			"evidence": "源码构建时间：本机 2026-09-29 07:18 UTC / 远端 2026-09-20 02:53 UTC",
+			"local": {
+				"version": "SNAPSHOT",
+				"build_id": "r0-bf156b6",
+				"build_date": 1790666285,
+				"build_date_iso": "2026-09-29 07:18 UTC"
+			},
+			"remote": {
+				"version": "SNAPSHOT",
+				"build_id": "r41386-45474b1733",
+				"build_date": 1789872820,
+				"build_date_iso": "2026-09-20 02:53 UTC",
+				"channel": "snapshots"
+			}
+		},
+		"source": {
+			"name": "immortalwrt_official",
+			"label": "ImmortalWrt 官方",
+			"url": "https://downloads.immortalwrt.org",
+			"layout": "official",
+			"system": ""
+		},
+		"unattended": 0,
+		"interval": 24
+	}
+}

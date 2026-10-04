@@ -1,0 +1,29 @@
+{
+	"active_source": "immortalwrt_official",
+	"sources": [
+		{
+			"name": "immortalwrt_official",
+			"label": "ImmortalWrt 官方",
+			"url": "https://downloads.immortalwrt.org",
+			"layout": "official",
+			"system": ""
+		},
+		{
+			"name": "shuery_bpi_r4",
+			"label": "Shuery BPI-R4 构建",
+			"url": "https://immortalwrt.shuery.lssa.fun",
+			"layout": "bin_targets_root",
+			"system": ""
+		},
+		{
+			"name": "rtfw",
+			"label": "RTFW 聚合站",
+			"url": "https://rtfw.shuery.lssa.fun",
+			"layout": "official",
+			"system": "immortalwrt"
+		}
+	],
+	"unattended": 0,
+	"interval": 24,
+	"enabled": true
+}

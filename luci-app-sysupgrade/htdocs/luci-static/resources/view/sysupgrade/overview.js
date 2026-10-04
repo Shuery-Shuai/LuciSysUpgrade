@@ -73,7 +73,7 @@ return view.extend({
 
 		nodes.push(E('div', { 'class': 'lsu-toolbar' }, [
 			fmt.badge(vs.state, vs.label),
-			E('span', { 'class': 'lsu-muted' }, sprintf('%s %s',
+			E('span', { 'class': 'lsu-muted' }, '%s %s'.format(
 				cached ? _('cached result from') : _('checked at'),
 				new Date((res.ts || 0) * 1000).toISOString().replace('T', ' ').substr(0, 16) + ' UTC'))
 		]));
@@ -105,14 +105,14 @@ return view.extend({
 			nodes.push(E('h3', {}, _('Candidate image')));
 			nodes.push(fmt.kvTable([ _('Item'), _('Value') ], [
 				[ _('File'), rem.image.name ],
-				[ _('Size'), fmt.fmtSize(rem.image.size) + (rem.image_limit ? sprintf(' / %s', fmt.fmtSize(rem.image_limit)) : '') ],
+				[ _('Size'), fmt.fmtSize(rem.image.size) + (rem.image_limit ? ' / %s'.format(fmt.fmtSize(rem.image_limit)) : '') ],
 				[ 'sha256', rem.image.sha256 ]
 			]));
 		}
 
 		if ((rem.images || []).length > 1) {
 			nodes.push(E('details', { 'class': 'lsu-images' }, [
-				E('summary', {}, sprintf(_('All images (%d)'), rem.images.length)),
+				E('summary', {}, _('All images (%d)').format(rem.images.length)),
 				fmt.callout('warning', _('Do not flash these by hand'),
 					_('Only the squashfs sysupgrade image is offered as an upgrade candidate. Preloader, BL31/U-Boot, GPT and sdcard images rewrite the boot chain or the partition table; a wrong pick bricks the device instead of failing the upgrade.')),
 				fmt.kvTable([ _('Type'), _('Filesystem'), _('File'), _('Size') ], rem.images.map(function(i) {

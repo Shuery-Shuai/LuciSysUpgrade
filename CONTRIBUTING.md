@@ -58,11 +58,20 @@
 
 - `htdocs/luci-static/resources/view/sysupgrade/*.js`，`useTabs` 由 prettier 统一。
 - 只通过 rpcd ubus 对象 `lucisysupgrade` 访问后端，不在前端拼命令。
+- **浏览器端没有 `sprintf`**：用 `'%s %s'.format(a, b)`（LuCI 的 `String.prototype.format`）。
+  这个错误在 Node 静态检查里也能暴露 —— 先跑 `node tests/render-check.mjs`。
+- 引用其它模块用 `'require sysupgrade.format as fmt';`：`as` 别名受支持
+  （luci.js 的正则 `/^require[ \t]+(\S+)(?:[ \t]+as[ \t]+([a-zA-Z_]\S*))?$/`），
+  不写 `as` 时变量名是模块路径把非字母数字换成下划线（`sysupgrade_format`）。
 
 ## 测试
 
+- `node tests/render-check.mjs`：**无浏览器渲染检查**。按 luci.js 的规则把视图的
+  `'require … as …'` 指令绑成参数（正则与 luci.js 一致），用桩跑 `load()` / `render()` / 事件处理器，
+  fixture 取自真机 `ubus call` 的真实输出。它能抓住 `sprintf is not defined` 这类**只有浏览器才暴露**的错误。
 - `tests/run-on-device.sh [ssh别名]`：把包内文件同步到路由器 `/tmp`，做全量 `ucode -c` 编译检查，
   并跑 `version / sources / status / check` 三条真机场景（官方源、自有构建站、rtfw）。
+- `tests/install-on-device.sh [ssh别名]`：装机（含 i18n 编译），`--uninstall` 卸载。
 - macOS 打包务必带 `COPYFILE_DISABLE=1 tar --no-xattrs`，否则 `._*` 元数据文件会混进归档。
 - 逻辑改动的验收标准：在真机上跑通上述场景，且结论与预期一致（见脚本内注释）。
 

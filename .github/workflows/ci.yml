@@ -29,6 +29,9 @@ jobs:
 
       # 首次推送前未能在本机跑通 prettier（npm registry 不可达），
       # 因此先设为非阻塞；本地执行 `npx prettier@3 --write "**/*.{js,json,yml,md}"` 后改为阻塞。
+      - name: 视图渲染检查（Node 桩，无浏览器）
+        run: node tests/render-check.mjs
+
       - name: prettier
         continue-on-error: true
         run: npx --yes prettier@3 --check "**/*.{js,json,yml,md}"
