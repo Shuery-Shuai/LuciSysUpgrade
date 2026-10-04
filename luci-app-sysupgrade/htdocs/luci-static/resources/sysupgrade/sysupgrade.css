@@ -337,3 +337,15 @@
 .lsu-modal-form .lsu-toolbar {
 	margin-top: 1.25rem;
 }
+
+/* Argon 深色主题有一条全局 `h4 { color: #8C6900 }`（黄褐），
+   模态框在 .lsu-app 之外，必须单独归一化，否则对话框标题是黄的 */
+.modal > h4,
+.modal h4,
+#modal_overlay h4 {
+	color: inherit;
+}
+
+.modal > h4 {
+	font-weight: 650;
+}

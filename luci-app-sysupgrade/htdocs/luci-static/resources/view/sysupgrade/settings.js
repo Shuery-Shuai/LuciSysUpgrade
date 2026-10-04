@@ -212,10 +212,10 @@ return view.extend({
 
 		return E('tr', { 'class': 'lsu-addrow' }, [
 			E('td', { 'class': 'lsu-col-check' }, els.preset),
-			E('td', { 'class': 'lsu-col-name' }, text('label', _('Label'))),
+			E('td', { 'class': 'lsu-col-name' }, text('label', _('Source label'))),
 			E('td', { 'class': 'lsu-col-layout' }, els.layout),
 			E('td', {}, text('url', 'https://example.invalid/immortalwrt')),
-			E('td', { 'class': 'lsu-col-system' }, text('system', _('optional'))),
+			E('td', { 'class': 'lsu-col-system' }, text('system', _('optional placeholder'))),
 			E('td', { 'class': 'lsu-col-action lsu-addcell' }, [
 				E('button', { 'class': 'lsu-rowbtn lsu-rowbtn-ok', 'click': ui.createHandlerFn(this, 'handleQuickAdd') }, _('Add')),
 				E('button', { 'class': 'lsu-rowbtn lsu-rowbtn-plain', 'click': ui.createHandlerFn(this, 'handleAdvanced') }, _('Advanced'))

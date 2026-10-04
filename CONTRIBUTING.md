@@ -70,6 +70,9 @@
 
 ## 测试
 
+- `node tests/i18n-check.mjs`：比对代码/menu.d 用到的 msgid 与 po 条目，缺翻译即失败（会列出文件与 msgid）。
+  它专治一类静默问题：msgid 写得不一致时界面残留英文，而静态检查与渲染检查都发现不了
+  （`_()` 在 Node 桩里是恒等函数）。
 - `node tests/render-check.mjs`：**无浏览器渲染检查**。按 luci.js 的规则把视图的
   `'require … as …'` 指令绑成参数（正则与 luci.js 一致），用桩跑 `load()` / `render()` / 事件处理器，
   fixture 取自真机 `ubus call` 的真实输出。它能抓住 `sprintf is not defined` 这类**只有浏览器才暴露**的错误。

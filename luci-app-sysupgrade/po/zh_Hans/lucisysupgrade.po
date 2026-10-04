@@ -16,18 +16,12 @@ msgstr ""
 msgid "System Update"
 msgstr "系统更新"
 
-msgid "Update Check"
-msgstr "更新检测"
 
-msgid "Sources"
-msgstr "源管理"
 
 msgid "Settings"
 msgstr "设置"
 
 # overview
-msgid "Read-only detection: the local build id is compared against the remote release metadata. This version does not download or flash anything."
-msgstr "只读检测：用本机构建标识与远端发布元数据比对，判断是否存在更新。本版本不会下载或刷写任何东西。"
 
 msgid "Check for updates"
 msgstr "检查更新"
@@ -141,8 +135,6 @@ msgstr "激活"
 msgid "Name"
 msgstr "名称"
 
-msgid "State"
-msgstr "状态"
 
 msgid "Layout"
 msgstr "布局"
@@ -150,11 +142,7 @@ msgstr "布局"
 msgid "Address"
 msgstr "地址"
 
-msgid "enabled"
-msgstr "启用"
 
-msgid "disabled"
-msgstr "禁用"
 
 msgid "Only one source is active at a time. Switching discards the previous check result, so that a verdict can never come from a source you are not looking at."
 msgstr "同一时刻只有一个源生效；切换会作废上一次的检测结果，避免出现「结论来自另一个源」的情况。"
@@ -162,17 +150,9 @@ msgstr "同一时刻只有一个源生效；切换会作废上一次的检测结
 msgid "Save and apply"
 msgstr "保存并应用"
 
-msgid "Layouts"
-msgstr "布局说明"
 
-msgid "official: <base>/{snapshots|releases/<version>}/targets/<target>/<subtarget>/ — bin_targets_root: <base>/targets/<target>/<subtarget>/ (a raw bin/targets mirror)."
-msgstr "official：<base>/{snapshots|releases/<版本>}/targets/<目标>/<子目标>/；bin_targets_root：<base>/targets/<目标>/<子目标>/（裸 bin/targets 镜像）。"
 
-msgid "Disabled sources"
-msgstr "关于禁用"
 
-msgid "A source can stay in the list as disabled; it is not probed until it becomes the active one."
-msgstr "源可以留在列表里但保持禁用；在它成为激活源之前不会被探测。"
 
 msgid "Active source updated."
 msgstr "激活源已更新。"
@@ -197,18 +177,12 @@ msgstr "自动下载"
 msgid "flash automatically"
 msgstr "自动刷写"
 
-msgid "Check interval (hours)"
-msgstr "检测间隔（小时）"
 
-msgid "0 disables the scheduled check. The schedule is written into /etc/crontabs/root inside a marked block (M4); existing entries are never touched."
-msgstr "0 表示关闭定时检测。定时任务会写入 /etc/crontabs/root 的标记块内（M4），绝不改动你已有的条目。"
 
 msgid "Webhook URL"
 msgstr "Webhook 地址"
 
 
-msgid "Save"
-msgstr "保存"
 
 msgid "Settings saved."
 msgstr "设置已保存。"
@@ -284,11 +258,7 @@ msgid "The partial file is kept, so a retry resumes instead of starting over (th
 msgstr "已下载的部分会保留，重试时续传而不是重来（续传前会先比对 ETag）。"
 
 # 源管理（自定义源）与设置（定时任务）
-msgid "Add a source"
-msgstr "添加源"
 
-msgid "Any static mirror that follows the official layout works. Pick a preset or fill the fields yourself."
-msgstr "任何遵循官方目录结构的静态镜像都可以。选一个预设，或自己填。"
 
 msgid "Preset"
 msgstr "预设"
@@ -390,8 +360,6 @@ msgid "Delete source %s? Its section is removed from the configuration and the l
 msgstr "删除源 %s？该段会从配置中移除，最近一次检测结果也会作废。"
 
 # 结构与日志（第二轮界面意见）
-msgid "Overview"
-msgstr "概览"
 
 msgid "Logs"
 msgstr "日志"
@@ -540,3 +508,13 @@ msgstr "自有"
 # 与 luci-base 的「卷标」区分开：同一个概念统一叫「名称」
 msgid "Source label"
 msgstr "名称"
+
+# 对话框与快速添加行共用的文案
+msgid "Add source"
+msgstr "添加源"
+
+msgid "optional placeholder"
+msgstr "可选"
+
+msgid "Overview"
+msgstr "概览"
