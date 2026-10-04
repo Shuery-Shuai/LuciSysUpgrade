@@ -300,8 +300,6 @@ msgid "Identifier"
 msgstr "标识"
 
 
-msgid "Label"
-msgstr "名称"
 
 msgid "My mirror"
 msgstr "我的镜像站"
@@ -538,3 +536,7 @@ msgstr "快速添加至少需要名称与地址；其它参数请用「高级」
 
 msgid "Own"
 msgstr "自有"
+
+# 与 luci-base 的「卷标」区分开：同一个概念统一叫「名称」
+msgid "Source label"
+msgstr "名称"

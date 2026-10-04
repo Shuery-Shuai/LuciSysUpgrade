@@ -160,7 +160,7 @@
 }
 
 .lsu-col-check {
-	width: 7rem;
+	width: 9rem;
 	text-align: center !important;
 }
 
@@ -169,15 +169,15 @@
 }
 
 .lsu-col-layout {
-	width: 8.5rem;
+	width: 10rem;
 }
 
 .lsu-col-system {
-	width: 8rem;
+	width: 9rem;
 }
 
 .lsu-col-action {
-	width: 9.5rem;
+	width: 11rem;
 	text-align: right !important;
 	white-space: nowrap;
 }
@@ -300,4 +300,40 @@
 .lsu-rowbtn-plain {
 	padding: 0.15rem 0.45rem;
 	font-size: 0.8rem;
+}
+
+/* 对话框里的表单：LuCI 的 .cbi-value 是页面用的两列布局（标签靠右），
+   放进模态框会错位 —— 这里改成堆叠：标题在上、控件占满宽度、说明在下 */
+.lsu-modal-form .cbi-value {
+	display: block;
+	margin: 0 0 1rem 0;
+}
+
+.lsu-modal-form .cbi-value-title {
+	display: block;
+	float: none;
+	width: auto;
+	text-align: left;
+	font-weight: 600;
+	padding: 0 0 0.3rem 0;
+}
+
+.lsu-modal-form .cbi-value-field {
+	margin: 0;
+	width: 100%;
+}
+
+.lsu-modal-form input,
+.lsu-modal-form select {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.lsu-modal-form .lsu-muted {
+	margin-top: 0.25rem;
+	font-size: 0.82rem;
+}
+
+.lsu-modal-form .lsu-toolbar {
+	margin-top: 1.25rem;
 }

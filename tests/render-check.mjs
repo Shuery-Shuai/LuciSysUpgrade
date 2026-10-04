@@ -200,7 +200,7 @@ const VIEWS = [
 				},
 				orderSequences: [
 					[ 'Active', 'Name', 'Layout', 'Address', 'System', 'Actions' ],
-					[ 'Preset', 'Label', 'Layout', 'Address', 'System', 'Actions' ]
+					[ 'Preset', 'Source label', 'Layout', 'Address', 'System', 'Actions' ]
 				]
 			}
 		]

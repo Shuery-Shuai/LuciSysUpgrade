@@ -232,7 +232,7 @@ return view.extend({
 			return function(ev) { adv[key] = ev.target.value; };
 		}
 
-		return [
+		return E('div', { 'class': 'lsu-modal-form' }, [
 			field(_('Preset'), E('select', {
 				'class': 'cbi-input-select',
 				'change': function(ev) {
@@ -252,7 +252,7 @@ return view.extend({
 				return E('option', { 'value': '' + i, 'selected': (adv.preset === '' + i) ? 'selected' : null }, preset.text);
 			}))), _('fills the fields below; you can edit everything afterwards')),
 
-			field(_('Label'), E('input', {
+			field(_('Source label'), E('input', {
 				'class': 'cbi-input-text', 'type': 'text', 'value': adv.label,
 				'placeholder': _('My mirror'), 'input': bind('label')
 			}), _('shown in the table; free text, duplicates allowed')),
@@ -285,7 +285,7 @@ return view.extend({
 					'click': ui.createHandlerFn(this, 'handleAdvancedAdd')
 				}, _('Add'))
 			])
-		];
+		]);
 	},
 
 	buildScheduleExtra: function() {
