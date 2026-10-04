@@ -83,6 +83,9 @@
 
 ## 测试
 
+- `python3 tools/inspect-package.py <产物>`：**离线核对构建产物**（.ipk 是 gzip 包裹的 tar，
+  内层 data.tar.gz；.apk 是 apk v3 的 ADB 格式，需设备侧用 `tests/verify-apk.sh` 深验）。
+  主包应含代码/视图/配置/菜单/ACL 且**不含 lmo**；`luci-i18n-sysupgrade-<lang>` 语言包应恰好含一个 lmo。
 - `node tests/i18n-check.mjs`：比对代码/menu.d 用到的 msgid 与 po 条目，缺翻译即失败（会列出文件与 msgid）。
   它专治一类静默问题：msgid 写得不一致时界面残留英文，而静态检查与渲染检查都发现不了
   （`_()` 在 Node 桩里是恒等函数）。

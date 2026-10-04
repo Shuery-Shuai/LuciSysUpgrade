@@ -64,34 +64,16 @@ build() {
 		grep -nE "Error [0-9]|error:|No rule|not found" /tmp/build-$v.log | tail -8 | sed "s/^/    /"
 	fi
 
-	mkdir -p "/build/out-$v"
-	find bin -name "luci-app-sysupgrade*" -type f -exec cp {} "/build/out-$v/" \; 2>/dev/null
+	rm -rf "/build/out-$v"; mkdir -p "/build/out-$v"
+	find bin -name "*sysupgrade*" -type f -exec cp {} "/build/out-$v/" \; 2>/dev/null
 
 	echo "  --- 产物 ---"
 	ls -l "/build/out-$v" 2>/dev/null | tail -3
 
-	# 不信任 make 的退出码：直接检查产物内容（包内应含 ucode 库、视图、lmo、配置、菜单与 ACL）
-	for art in /build/out-$v/*; do
-		[ -f "$art" ] || continue
-		echo "  === 校验 $(basename "$art") ==="
-		# .ipk 是 ar + data.tar.gz，可直接列内容；
-		# .apk 是 apk v3 的 ADB 格式（不是 tar），这里只校验魔数与体积，
-		# 内容用真机的 apk-tools 深验：tests/verify-apk.sh
-		case "$art" in
-			*.ipk) ar p "$art" data.tar.gz 2>/dev/null | tar -tzf - 2>/dev/null > /tmp/list.txt ;;
-			*)     if head -c 4 "$art" | grep -q "ADBd"; then echo "    ✓ apk v3 魔数（ADBd）"; else echo "    ✗ apk 魔数不对"; fi
-			       echo "    体积: $(wc -c < "$art") 字节"
-			       echo "    （内容深验：tests/verify-apk.sh）"
-			       : > /tmp/list.txt ;;
-		esac
-		total=$(wc -l < /tmp/list.txt)
-		echo "    文件数: $total"
-		for want in "usr/share/ucode/lucisysupgrade/util.uc" "usr/bin/lucisysupgrade" "usr/share/rpcd/ucode/lucisysupgrade" \
-			"www/luci-static/resources/view/sysupgrade/overview.js" "usr/lib/lua/luci/i18n/lucisysupgrade.zh-cn.lmo" \
-			"etc/config/lucisysupgrade" "usr/share/luci/menu.d/luci-app-sysupgrade.json" "usr/share/rpcd/acl.d/luci-app-sysupgrade.json"; do
-			if grep -q "$want" /tmp/list.txt; then echo "    ✓ $want"; else echo "    ✗ 缺少 $want"; fi
-		done
-	done
+	# 不信任 make 的退出码：用统一工具核对产物内容
+	# （.ipk 是 gzip 包裹的 tar，内层 data.tar.gz；.apk 是 apk v3 的 ADB 格式）
+	echo "  --- 内容校验 ---"
+	python3 /src/tools/inspect-package.py /build/out-$v/* 2>&1 | sed "s/^/    /"
 }
 
 build 25.12.0 "https://downloads.openwrt.org/releases/25.12.0/targets/x86/64/openwrt-sdk-25.12.0-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst"

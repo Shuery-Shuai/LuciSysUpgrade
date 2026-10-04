@@ -56,20 +56,12 @@ jobs:
       - name: 收集并校验产物
         run: |
           mkdir -p out
-          find sdk/bin -name 'luci-app-sysupgrade*' -type f -exec cp {} out/ \;
+          find sdk/bin -name '*sysupgrade*' -type f -exec cp {} out/ \;
           ls -l out
-          for art in out/*; do
-            case "$art" in
-              *.ipk) ar p "$art" data.tar.gz | tar -tzf - > list.txt ;;
-              *)     tar -tzf "$art" > list.txt ;;
-            esac
-            echo "== $(basename "$art"): $(wc -l < list.txt) 个文件"
-            for want in usr/share/ucode/lucisysupgrade/util.uc usr/bin/lucisysupgrade \
-                        usr/share/rpcd/ucode/lucisysupgrade www/luci-static/resources/view/sysupgrade/overview.js \
-                        usr/lib/lua/luci/i18n/lucisysupgrade.zh-cn.lmo etc/config/lucisysupgrade; do
-              grep -q "$want" list.txt || { echo "缺少 $want"; exit 1; }
-            done
-          done
+          # 核对主包内容（.ipk 是 gzip 包裹的 tar，内层 data.tar.gz）
+          python3 tools/inspect-package.py out/*
+          # 语言包由 luci.mk 生成（官方机制），这里确认它确实产出了
+          ls out/ | grep -q 'luci-i18n-sysupgrade' || { echo "缺少 luci-i18n-sysupgrade 语言包"; exit 1; }
 
       - uses: actions/upload-artifact@v4
         with:
