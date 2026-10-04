@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JSON 校验
+        run: |
+          fail=0
+          for f in $(find . -name '*.json' -not -path './.git/*'); do
+            python3 -m json.tool "$f" > /dev/null || { echo "FAIL $f"; fail=1; }
+          done
+          exit $fail
+
+      - name: JS 语法
+        run: |
+          fail=0
+          for f in $(find . -name '*.js' -not -path './.git/*'); do
+            node --check "$f" || { echo "FAIL $f"; fail=1; }
+          done
+          exit $fail
+
+      # 首次推送前未能在本机跑通 prettier（npm registry 不可达），
+      # 因此先设为非阻塞；本地执行 `npx prettier@3 --write "**/*.{js,json,yml,md}"` 后改为阻塞。
+      - name: prettier
+        continue-on-error: true
+        run: npx --yes prettier@3 --check "**/*.{js,json,yml,md}"
+
+      - name: shellcheck
+        run: shellcheck tests/*.sh
+
+  ucode-syntax:
+    runs-on: ubuntu-latest
+    container: openwrt/rootfs:x86_64-25.12-SNAPSHOT
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 ucode
+        run: apk update && apk add --no-cache ucode
+
+      - name: ucode 编译检查
+        run: |
+          fail=0
+          for f in $(find luci-app-sysupgrade -type f \( -name '*.uc' -o -name 'lucisysupgrade' \)); do
+            ucode -c "$f" > /dev/null || { echo "FAIL $f"; fail=1; }
+          done
+          exit $fail

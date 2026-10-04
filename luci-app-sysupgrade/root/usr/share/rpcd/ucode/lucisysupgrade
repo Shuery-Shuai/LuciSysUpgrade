@@ -1,0 +1,70 @@
+#!/usr/bin/env ucode
+'use strict';
+
+// rpcd ubus 对象：lucisysupgrade（M1 只读：status / sources / check / version）
+
+let util = require('lucisysupgrade.util');
+let local = require('lucisysupgrade.local');
+let config = require('lucisysupgrade.config');
+let source = require('lucisysupgrade.source');
+let verdict = require('lucisysupgrade.verdict');
+let state = require('lucisysupgrade.state');
+
+const VERSION = '0.1.0';
+
+function arg(req, name) {
+	let a = req?.args ?? req ?? {};
+	return trim(a[name] ?? '');
+}
+
+function do_status() {
+	return {
+		version: VERSION,
+		ts: util.now_epoch(),
+		local: local.identity(),
+		config: config.load(),
+		last: state.load_last()
+	};
+}
+
+function do_sources() {
+	let conf = config.load();
+	return { active_source: conf.active_source, sources: conf.sources, unattended: conf.unattended, interval: conf.interval, enabled: conf.enabled };
+}
+
+function do_check(req) {
+	let conf = config.load();
+	let name = arg(req, 'source');
+	let channel = arg(req, 'channel');
+	let src = length(name)
+		? (filter(conf.sources, function (s) { return s.name == name; })[0] ?? null)
+		: config.active(conf);
+	let loc = local.identity();
+
+	if (src == null)
+		return { ok: false, ts: util.now_epoch(), error: '没有可用的源', local: loc, remote: null, verdict: verdict.compare(loc, null) };
+
+	let remote = source.probe(src, loc, channel);
+	let result = {
+		ok: remote.ok,
+		ts: util.now_epoch(),
+		version: VERSION,
+		local: loc,
+		remote: remote,
+		verdict: verdict.compare(loc, remote),
+		source: { name: src.name, label: src.label, url: src.url, layout: src.layout, system: src.system },
+		unattended: conf.unattended,
+		interval: conf.interval
+	};
+	state.save_last(result);
+	return result;
+}
+
+return {
+	lucisysupgrade: {
+		version: { call: function () { return { version: VERSION }; } },
+		status: { call: do_status },
+		sources: { call: do_sources },
+		check: { args: { source: '', channel: '' }, call: do_check }
+	}
+};

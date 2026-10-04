@@ -1,0 +1,32 @@
+
+config globals 'globals'
+	option enabled '1'
+	# 0 = 仅检测并通知, 1 = 检测后自动下载, 2 = 检测后自动下载并刷写
+	option unattended '0'
+	# 自动检测间隔（小时），0 = 关闭
+	option interval '24'
+	# 通用 webhook（POST JSON），留空则关闭
+	option webhook ''
+	# 同一时刻只激活一个源
+	option active_source 'immortalwrt_official'
+
+config source 'immortalwrt_official'
+	option label 'ImmortalWrt 官方'
+	option url 'https://downloads.immortalwrt.org'
+	option layout 'official'
+	option system ''
+	option enabled '1'
+
+config source 'shuery_bpi_r4'
+	option label 'Shuery BPI-R4 构建'
+	option url 'https://immortalwrt.shuery.lssa.fun'
+	option layout 'bin_targets_root'
+	option system ''
+	option enabled '0'
+
+config source 'rtfw'
+	option label 'RTFW 聚合站'
+	option url 'https://rtfw.shuery.lssa.fun'
+	option layout 'official'
+	option system 'immortalwrt'
+	option enabled '0'
