@@ -525,3 +525,16 @@ msgstr "显示 %d / %d 条事件"
 
 msgid "No events match the filter."
 msgstr "没有符合筛选条件的事件。"
+
+# 快速添加行 + 高级对话框
+msgid "The last row is the quick add: fill the required fields and press Add. Use Advanced when you need to set the identifier yourself."
+msgstr "表格最后一行是快速添加：填必填项后点「添加」。需要自己指定标识等参数时点「高级」。"
+
+msgid "Advanced"
+msgstr "高级"
+
+msgid "Quick add needs a label and an address at least — use Advanced for the rest."
+msgstr "快速添加至少需要名称与地址；其它参数请用「高级」。"
+
+msgid "Own"
+msgstr "自有"

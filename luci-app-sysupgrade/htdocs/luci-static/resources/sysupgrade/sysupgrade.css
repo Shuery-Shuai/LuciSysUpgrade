@@ -160,7 +160,7 @@
 }
 
 .lsu-col-check {
-	width: 3.25rem;
+	width: 7rem;
 	text-align: center !important;
 }
 
@@ -177,7 +177,7 @@
 }
 
 .lsu-col-action {
-	width: 7rem;
+	width: 9.5rem;
 	text-align: right !important;
 	white-space: nowrap;
 }
@@ -253,4 +253,51 @@
 .lsu-filters .lsu-filter > span {
 	font-size: 0.78rem;
 	opacity: 0.75;
+}
+
+/* 快速添加行：与表格列同序，只有必填项 */
+.lsu-addrow {
+	background: rgba(127, 127, 127, 0.07);
+}
+
+.lsu-addrow input,
+.lsu-addrow select {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.lsu-addrow .cbi-input-select,
+.lsu-addrow .cbi-input-text {
+	padding: 0.2rem 0.35rem;
+	font-size: 0.85rem;
+}
+
+.lsu-addcell {
+	display: flex;
+	gap: 0.25rem;
+	justify-content: flex-end;
+}
+
+.lsu-rowbtn-ok {
+	color: #16a34a;
+	border-color: rgba(22, 163, 74, 0.5);
+}
+
+.lsu-rowbtn-ok:hover {
+	background: rgba(22, 163, 74, 0.12);
+}
+
+.lsu-rowbtn-plain {
+	color: inherit;
+	border-color: rgba(127, 127, 127, 0.5);
+}
+
+.lsu-rowbtn-plain:hover {
+	background: rgba(127, 127, 127, 0.12);
+}
+
+.lsu-rowbtn-ok,
+.lsu-rowbtn-plain {
+	padding: 0.15rem 0.45rem;
+	font-size: 0.8rem;
 }

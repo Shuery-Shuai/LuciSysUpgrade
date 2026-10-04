@@ -23,10 +23,10 @@ var SCHEDULE_KINDS = [
 var WEEKDAYS = [ _('Monday'), _('Tuesday'), _('Wednesday'), _('Thursday'), _('Friday'), _('Saturday'), _('Sunday') ];
 
 var PRESETS = [
-	{ text: _('ImmortalWrt official'), name: 'immortalwrt_official', label: _('ImmortalWrt official'), url: 'https://downloads.immortalwrt.org', layout: 'official', system: '' },
-	{ text: _('OpenWrt official'), name: 'openwrt_official', label: _('OpenWrt official'), url: 'https://downloads.openwrt.org', layout: 'official', system: '' },
-	{ text: _('RTFW mirror'), name: 'rtfw_immortalwrt', label: _('RTFW mirror'), url: 'https://rtfw.shuery.lssa.fun', layout: 'official', system: 'immortalwrt' },
-	{ text: _('Own bin/targets mirror'), name: 'own_bin_targets', label: _('Own build mirror'), url: 'https://immortalwrt.shuery.lssa.fun', layout: 'bin_targets_root', system: '' }
+	{ text: _('ImmortalWrt official'), short: 'ImmortalWrt', label: _('ImmortalWrt official'), url: 'https://downloads.immortalwrt.org', layout: 'official', system: '' },
+	{ text: _('OpenWrt official'), short: 'OpenWrt', label: _('OpenWrt official'), url: 'https://downloads.openwrt.org', layout: 'official', system: '' },
+	{ text: _('RTFW mirror'), short: 'RTFW', label: _('RTFW mirror'), url: 'https://rtfw.shuery.lssa.fun', layout: 'official', system: 'immortalwrt' },
+	{ text: _('Own bin/targets mirror'), short: _('Own'), label: _('Own build mirror'), url: 'https://immortalwrt.shuery.lssa.fun', layout: 'bin_targets_root', system: '' }
 ];
 
 function sheet() {
@@ -66,15 +66,14 @@ return view.extend({
 			day: '' + (conf.schedule_day || 1),
 			webhook: conf.webhook || ''
 		};
-		this.showForm = false;
 		this.sources = conf.sources || [];
 		this.active = conf.active_source || '';
 		this.layouts = status.layouts || [ 'official', 'bin_targets_root' ];
 		this.form = { name: '', label: '', url: '', layout: 'official', system: '' };
 
 		this.sourcesNode = E('div', {}, this.buildSources());
-		this.formNode = E('div', {}, this.buildAddForm());
 		this.scheduleNode = E('div', {}, this.buildScheduleExtra());
+		this.adv = { preset: '', name: '', label: '', url: '', layout: 'official', system: '' };
 
 		return E('div', { 'class': 'lsu-app' }, [
 			sheet(),
@@ -166,80 +165,124 @@ return view.extend({
 					E('th', { 'class': 'lsu-col-system' }, _('System')),
 					E('th', { 'class': 'lsu-col-action' }, _('Actions'))
 				])),
-				E('tbody', {}, rows)
+				E('tbody', {}, rows.concat([ this.buildAddRow() ]))
 			]),
+			E('p', { 'class': 'lsu-muted' },
+				_('The last row is the quick add: fill the required fields and press Add. Use Advanced when you need to set the identifier yourself.')),
 			E('div', { 'class': 'lsu-toolbar' }, [
 				E('button', {
 					'class': 'btn cbi-button cbi-button-action',
 					'click': ui.createHandlerFn(this, 'handleSaveActive')
-				}, _('Save and apply')),
-				E('button', {
-					'class': 'btn cbi-button',
-					'click': ui.createHandlerFn(this, 'handleToggleForm')
-				}, this.showForm ? _('Cancel') : _('Add source'))
-			]),
-
-			this.showForm ? E('div', { 'class': 'lsu-addform' }, [
-				E('p', { 'class': 'lsu-muted' },
-					_('Any static mirror that follows the official layout works. Pick a preset or fill the fields yourself.')),
-				this.formNode
-			]) : ''
+				}, _('Save and apply'))
+			])
 		];
 	},
 
-	buildAddForm: function() {
+	// 表格最后一行的快速添加：顺序与列一致，只有必填项
+	buildAddRow: function() {
 		var self = this;
-		var layouts = this.layouts;
+		var els = this.rowEls = {};
 
-		var preset = E('select', {
+		function text(key, ph) {
+			var el = E('input', { 'class': 'cbi-input-text', 'type': 'text', 'placeholder': ph });
+			els[key] = el;
+			return el;
+		}
+
+		els.preset = E('select', {
 			'class': 'cbi-input-select',
 			'change': function(ev) {
-				var p = PRESETS[parseInt(ev.target.value, 10)];
-				if (!p)
+				var preset = PRESETS[parseInt(ev.target.value, 10)];
+
+				if (!preset)
 					return;
 
-				self.form = { name: p.name, label: p.label, url: p.url, layout: p.layout, system: p.system };
-				replace(self.formNode, self.buildAddForm());
+				els.label.value = preset.label;
+				els.url.value = preset.url;
+				els.layout.value = preset.layout;
+				els.system.value = preset.system;
 			}
-		}, [ E('option', { 'value': '' }, _('— pick a preset —')) ].concat(PRESETS.map(function(p, i) {
-			return E('option', { 'value': '' + i }, p.text);
+		}, [ E('option', { 'value': '' }, _('Preset')) ].concat(PRESETS.map(function(preset, i) {
+			return E('option', { 'value': '' + i }, preset.short);
 		})));
 
-		return [
-			field(_('Preset'), preset, _('fills the fields below; you can edit everything afterwards')),
+		els.layout = E('select', { 'class': 'cbi-input-select' }, this.layouts.map(function(l) {
+			return E('option', { 'value': l, 'selected': (l === 'official') ? 'selected' : null }, l);
+		}));
 
-			// 顺序与上方表格列保持一致：名称 → 布局 → 地址 → 系统
+		return E('tr', { 'class': 'lsu-addrow' }, [
+			E('td', { 'class': 'lsu-col-check' }, els.preset),
+			E('td', { 'class': 'lsu-col-name' }, text('label', _('Label'))),
+			E('td', { 'class': 'lsu-col-layout' }, els.layout),
+			E('td', {}, text('url', 'https://example.invalid/immortalwrt')),
+			E('td', { 'class': 'lsu-col-system' }, text('system', _('optional'))),
+			E('td', { 'class': 'lsu-col-action lsu-addcell' }, [
+				E('button', { 'class': 'lsu-rowbtn lsu-rowbtn-ok', 'click': ui.createHandlerFn(this, 'handleQuickAdd') }, _('Add')),
+				E('button', { 'class': 'lsu-rowbtn lsu-rowbtn-plain', 'click': ui.createHandlerFn(this, 'handleAdvanced') }, _('Advanced'))
+			])
+		]);
+	},
+
+	// 「高级」对话框：完整参数（含标识）
+	buildAdvancedForm: function() {
+		var self = this;
+		var adv = this.adv;
+
+		function bind(key) {
+			return function(ev) { adv[key] = ev.target.value; };
+		}
+
+		return [
+			field(_('Preset'), E('select', {
+				'class': 'cbi-input-select',
+				'change': function(ev) {
+					var preset = PRESETS[parseInt(ev.target.value, 10)];
+
+					self.adv = {
+						preset: ev.target.value,
+						name: '',
+						label: preset ? preset.label : '',
+						url: preset ? preset.url : '',
+						layout: preset ? preset.layout : 'official',
+						system: preset ? preset.system : ''
+					};
+					replace(self.advNode, self.buildAdvancedForm());
+				}
+			}, [ E('option', { 'value': '' }, _('— pick a preset —')) ].concat(PRESETS.map(function(preset, i) {
+				return E('option', { 'value': '' + i, 'selected': (adv.preset === '' + i) ? 'selected' : null }, preset.text);
+			}))), _('fills the fields below; you can edit everything afterwards')),
+
 			field(_('Label'), E('input', {
-				'class': 'cbi-input-text', 'type': 'text', 'value': this.form.label, 'placeholder': _('My mirror'),
-				'input': function(ev) { self.form.label = ev.target.value; }
+				'class': 'cbi-input-text', 'type': 'text', 'value': adv.label,
+				'placeholder': _('My mirror'), 'input': bind('label')
 			}), _('shown in the table; free text, duplicates allowed')),
 
 			field(_('Layout'), E('select', {
-				'class': 'cbi-input-select',
-				'change': function(ev) { self.form.layout = ev.target.value; }
-			}, layouts.map(function(l) {
-				return E('option', { 'value': l, 'selected': (l === this.form.layout) ? 'selected' : null }, l);
-			}, this)), _('official: <base>/{snapshots|releases/<version>}/targets/… — bin_targets_root: <base>/targets/…')),
+				'class': 'cbi-input-select', 'change': bind('layout')
+			}, this.layouts.map(function(l) {
+				return E('option', { 'value': l, 'selected': (l === adv.layout) ? 'selected' : null }, l);
+			})), _('official: <base>/{snapshots|releases/<version>}/targets/… — bin_targets_root: <base>/targets/…')),
 
 			field(_('Address'), E('input', {
-				'class': 'cbi-input-text', 'type': 'text', 'value': this.form.url, 'placeholder': 'https://example.invalid/immortalwrt',
-				'input': function(ev) { self.form.url = ev.target.value; }
+				'class': 'cbi-input-text', 'type': 'text', 'value': adv.url,
+				'placeholder': 'https://example.invalid/immortalwrt', 'input': bind('url')
 			})),
 
 			field(_('System'), E('input', {
-				'class': 'cbi-input-text', 'type': 'text', 'value': this.form.system, 'placeholder': _('optional, e.g. immortalwrt'),
-				'input': function(ev) { self.form.system = ev.target.value; }
+				'class': 'cbi-input-text', 'type': 'text', 'value': adv.system,
+				'placeholder': _('optional, e.g. immortalwrt'), 'input': bind('system')
 			}), _('path segment for mirrors that host several systems, e.g. rtfw/immortalwrt')),
 
 			field(_('Identifier'), E('input', {
-				'class': 'cbi-input-text', 'type': 'text', 'value': this.form.name, 'placeholder': _('auto-generated when empty'),
-				'input': function(ev) { self.form.name = ev.target.value; }
+				'class': 'cbi-input-text', 'type': 'text', 'value': adv.name,
+				'placeholder': _('auto-generated when empty'), 'input': bind('name')
 			}), _('internal UCI section name (lower-case letters, digits, underscore); normally you do not need to set it')),
 
-			E('div', { 'class': 'lsu-toolbar' }, [
+			E('div', { 'class': 'right lsu-toolbar' }, [
+				E('button', { 'class': 'btn', 'click': ui.hideModal }, _('Cancel') + '\u00a0'),
 				E('button', {
 					'class': 'btn cbi-button cbi-button-action',
-					'click': ui.createHandlerFn(this, 'handleAdd')
+					'click': ui.createHandlerFn(this, 'handleAdvancedAdd')
 				}, _('Add'))
 			])
 		];
@@ -279,34 +322,75 @@ return view.extend({
 		return out;
 	},
 
-	handleToggleForm: function() {
-		this.showForm = !this.showForm;
-		replace(this.sourcesNode, this.buildSources());
+	handleQuickAdd: function() {
+		var self = this;
+		var els = this.rowEls || {};
+		var v = {
+			name: '',
+			label: ((els.label && els.label.value) || '').trim(),
+			url: ((els.url && els.url.value) || '').trim(),
+			layout: (els.layout && els.layout.value) || 'official',
+			system: ((els.system && els.system.value) || '').trim()
+		};
+
+		if (!v.label || !v.url) {
+			ui.addNotification(null, E('p', {}, _('Quick add needs a label and an address at least — use Advanced for the rest.')), 'warning');
+			return Promise.resolve(false);
+		}
+
+		return this.addSource(v).then(function(ok) {
+			if (ok) {
+				[ 'label', 'url', 'system' ].forEach(function(k) {
+					if (self.rowEls[k])
+						self.rowEls[k].value = '';
+				});
+				if (self.rowEls.preset)
+					self.rowEls.preset.value = '';
+			}
+			return ok;
+		});
+	},
+
+	handleAdvanced: function() {
+		this.adv = { preset: '', name: '', label: '', url: '', layout: 'official', system: '' };
+		this.advNode = E('div', {}, this.buildAdvancedForm());
+
+		return ui.showModal(_('Add source'), [ this.advNode ]);
+	},
+
+	handleAdvancedAdd: function() {
+		var self = this;
+
+		return this.addSource(this.adv).then(function(ok) {
+			if (ok)
+				ui.hideModal();
+			return ok;
+		});
+	},
+
+	// 快速添加与高级对话框共用的落地逻辑
+	addSource: function(v) {
+		var self = this;
+
+		return callSourceAdd(v.name, v.label, v.url, v.layout, v.system).then(function(res) {
+			if (!res || res.ok === false)
+				throw new Error((res && res.error) || _('Add failed'));
+
+			self.refreshSources(res);
+			ui.addNotification(null, E('p', {}, _('Source added.')), 'info');
+			return true;
+		}).catch(function(err) {
+			ui.addNotification(null, E('p', {}, _('Add failed: ') + (err.message || err)), 'error');
+			return false;
+		});
 	},
 
 	refreshSources: function(res) {
 		if (res && res.sources) {
 			this.sources = res.sources;
 			this.active = res.active_source || this.active;
-			replace(this.tableNode, this.buildSources());
+			replace(this.sourcesNode, this.buildSources());
 		}
-	},
-
-	handleAdd: function() {
-		var self = this;
-		var f = this.form;
-
-		return callSourceAdd(f.name, f.label, f.url, f.layout, f.system).then(function(res) {
-			if (!res || res.ok === false)
-				throw new Error((res && res.error) || _('Add failed'));
-
-			self.refreshSources(res);
-			self.form = { name: '', label: '', url: '', layout: 'official', system: '' };
-			replace(self.formNode, self.buildAddForm());
-			ui.addNotification(null, E('p', {}, _('Source added.')), 'info');
-		}).catch(function(err) {
-			ui.addNotification(null, E('p', {}, _('Add failed: ') + (err.message || err)), 'error');
-		});
 	},
 
 	handleDelete: function(name) {

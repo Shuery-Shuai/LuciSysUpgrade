@@ -177,20 +177,30 @@ const VIEWS = [
 			source_add: { ok: true, sources: baseSources.sources, active_source: 'immortalwrt_official' },
 			source_del: { ok: true, sources: baseSources.sources, active_source: 'immortalwrt_official' }
 		},
-		handlers: [ 'handleSaveOptions', 'handleSaveActive', 'handleAdd', { name: 'handleDelete', args: [ 'openwrt_official' ] }, { name: 'doDelete', args: [ 'openwrt_official' ] } ],
+		handlers: [ 'handleSaveOptions', 'handleSaveActive', { name: 'handleDelete', args: [ 'openwrt_official' ] }, { name: 'doDelete', args: [ 'openwrt_official' ] }, 'handleAdvancedAdd' ],
 		cases: [
 			{
-				name: '设置（含检测源）',
+				name: '设置（快速添加 + 高级对话框）',
 				data: { ...baseStatus, layouts: [ 'official', 'bin_targets_root' ], config: { ...baseStatus.config, sources: baseSources.sources, active_source: baseSources.active_source } },
-				expectPre: [ 'Settings', 'Check sources', 'Add source', 'Save and apply', 'Save settings', 'Scheduled task', 'Time (24h)', 'Delete' ],
-				expect: [ 'Cancel', 'Add source' ].slice(0, 1),
+				expectPre: [
+					'Settings', 'Check sources', 'Save and apply', 'Save settings', 'Scheduled task',
+					'Time (24h)', 'Delete', 'Preset', 'Advanced'
+				],
 				requireClass: 'lsu-table',
-				// 添加源表单默认折叠，先点开再断言字段顺序（表格列顺序：名称→布局→地址→系统）
-				after: function(view) { return view.handleToggleForm(); },
-				expectExtra: [ 'Identifier', 'Preset' ],
-				orderNodes: [
+				expect: [ 'Identifier', 'auto-generated when empty', 'internal UCI section name' ],
+				after: async function(view) {
+					// 快速添加：缺必填 → 警告；填好 → 成功
+					await view.handleQuickAdd();
+					view.rowEls.label.value = '测试源';
+					view.rowEls.url.value = 'https://rtfw.shuery.lssa.fun';
+					await view.handleQuickAdd();
+					// 高级对话框
+					await view.handleAdvanced();
+					return view.advNode;
+				},
+				orderSequences: [
 					[ 'Active', 'Name', 'Layout', 'Address', 'System', 'Actions' ],
-					[ 'Label', 'Layout', 'Address', 'System', 'Identifier' ]
+					[ 'Preset', 'Label', 'Layout', 'Address', 'System', 'Actions' ]
 				]
 			}
 		]
@@ -261,10 +271,12 @@ for (const spec of VIEWS) {
 					throw new Error('展开前缺少文案: ' + miss.join(', '));
 			}
 
-			if (c.after)
-				await c.after(view);
+			let extraTree = null;
 
-			const text = collectText(tree).join(' ');
+			if (c.after)
+				extraTree = await c.after(view);
+
+			const text = collectText(tree).join(' ') + ' ' + (extraTree ? collectText(extraTree).join(' ') : '');
 			globalThis.__lastText = text;
 
 			// 表格必须带 lsu-table（固定布局 + 表头同侧对齐），否则会出现表头与内容错位
@@ -290,10 +302,27 @@ for (const spec of VIEWS) {
 					own.forEach(walk);
 				})(tree);
 
-				for (const seq of c.orderNodes) {
+				const orderTree = (c.orderTree === 'extra' && extraTree) ? extraTree : tree;
+				const flatSrc = orderTree === tree ? flat : (function flatten(t) {
+					const out = [];
+					(function walk(node) {
+						if (!node || typeof node !== 'object')
+							return;
+						if (Array.isArray(node))
+							return node.forEach(walk);
+						const own = node.children || [];
+						const inner = own.filter(x => typeof x === 'string').join(' ').trim();
+						if (inner)
+							out.push(inner);
+						own.forEach(walk);
+					})(t);
+					return out;
+				})(orderTree);
+
+				for (const seq of (c.orderSequences || [ c.orderNodes ])) {
 					let at = -1;
 					for (const needle of seq) {
-						const next = flat.findIndex((t, i) => i > at && t.indexOf(needle) >= 0);
+						const next = flatSrc.findIndex((t, i) => i > at && t.indexOf(needle) >= 0);
 						if (next < 0)
 							throw new Error('顺序断言失败：找不到「' + needle + '」');
 						at = next;
