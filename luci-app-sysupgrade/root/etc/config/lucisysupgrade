@@ -22,7 +22,6 @@ config source 'shuery_bpi_r4'
 	option url 'https://immortalwrt.shuery.lssa.fun'
 	option layout 'bin_targets_root'
 	option system ''
-	option enabled '0'
 
 config source 'rtfw'
 	option label 'RTFW 聚合站'

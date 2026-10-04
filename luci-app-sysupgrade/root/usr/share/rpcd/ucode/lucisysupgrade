@@ -1,7 +1,9 @@
 #!/usr/bin/env ucode
 'use strict';
 
-// rpcd ubus 对象：lucisysupgrade（M1 只读：status / sources / check / version）
+// rpcd ubus 对象：lucisysupgrade
+// 只读：version / status / sources / check
+// 写：  set_active（切换唯一激活源）/ set_options（无人值守档位、间隔、webhook）
 
 let util = require('lucisysupgrade.util');
 let local = require('lucisysupgrade.local');
@@ -9,12 +11,20 @@ let config = require('lucisysupgrade.config');
 let source = require('lucisysupgrade.source');
 let verdict = require('lucisysupgrade.verdict');
 let state = require('lucisysupgrade.state');
+let uci = require('uci');
 
 const VERSION = '0.1.0';
+const CONFIG = 'lucisysupgrade';
 
 function arg(req, name) {
 	let a = req?.args ?? req ?? {};
 	return trim(a[name] ?? '');
+}
+
+// 空字符串视为“不修改”，避免部分字段调用把 interval 误写成 0
+function opt_int(v, fallback) {
+	let s = trim(v ?? '');
+	return length(s) ? util.to_int(s, fallback) : fallback;
 }
 
 function do_status() {
@@ -29,7 +39,13 @@ function do_status() {
 
 function do_sources() {
 	let conf = config.load();
-	return { active_source: conf.active_source, sources: conf.sources, unattended: conf.unattended, interval: conf.interval, enabled: conf.enabled };
+	return {
+		active_source: conf.active_source,
+		sources: conf.sources,
+		unattended: conf.unattended,
+		interval: conf.interval,
+		enabled: conf.enabled
+	};
 }
 
 function do_check(req) {
@@ -60,11 +76,54 @@ function do_check(req) {
 	return result;
 }
 
+function do_set_active(req) {
+	let name = arg(req, 'source');
+	let conf = config.load();
+	let hit = filter(conf.sources, function (s) { return s.name == name; });
+
+	if (!length(hit))
+		return { ok: false, error: '未知的源：' + name };
+
+	let ctx = uci.cursor();
+	ctx.set(CONFIG, 'globals', 'active_source', name);
+	if (!ctx.commit(CONFIG))
+		return { ok: false, error: 'uci commit 失败' };
+
+	// 切换源之后，上一源的检测结果必须作废
+	state.clear_last();
+	return { ok: true, active_source: name, config: config.load() };
+}
+
+function do_set_options(req) {
+	let conf = config.load();
+	let level = opt_int(req?.args?.unattended ?? req?.unattended, conf.unattended);
+	let interval = opt_int(req?.args?.interval ?? req?.interval, conf.interval);
+	let webhook = trim(req?.args?.webhook ?? req?.webhook ?? conf.webhook);
+
+	if (level < 0 || level > 2)
+		return { ok: false, error: 'unattended 必须是 0/1/2' };
+	if (interval < 0 || interval > 168)
+		return { ok: false, error: 'interval 必须在 0-168 小时之间' };
+	if (length(webhook) && !match(webhook, /^https?:\/\/.+/))
+		return { ok: false, error: 'webhook 必须是 http(s) 地址或留空' };
+
+	let ctx = uci.cursor();
+	ctx.set(CONFIG, 'globals', 'unattended', '' + level);
+	ctx.set(CONFIG, 'globals', 'interval', '' + interval);
+	ctx.set(CONFIG, 'globals', 'webhook', webhook);
+	if (!ctx.commit(CONFIG))
+		return { ok: false, error: 'uci commit 失败' };
+
+	return { ok: true, config: config.load() };
+}
+
 return {
 	lucisysupgrade: {
 		version: { call: function () { return { version: VERSION }; } },
 		status: { call: do_status },
 		sources: { call: do_sources },
-		check: { args: { source: '', channel: '' }, call: do_check }
+		check: { args: { source: '', channel: '' }, call: do_check },
+		set_active: { args: { source: '' }, call: do_set_active },
+		set_options: { args: { unattended: '', interval: '', webhook: '' }, call: do_set_options }
 	}
 };

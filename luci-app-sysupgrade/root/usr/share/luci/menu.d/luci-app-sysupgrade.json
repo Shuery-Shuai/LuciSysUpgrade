@@ -1,6 +1,6 @@
 {
 	"admin/system/sysupgrade/": {
-		"title": "系统更新",
+		"title": "System Update",
 		"order": 45,
 		"action": {
 			"type": "firstchild"
@@ -10,11 +10,33 @@
 		}
 	},
 	"admin/system/sysupgrade/overview": {
-		"title": "更新检测",
+		"title": "Update Check",
 		"order": 1,
 		"action": {
 			"type": "view",
 			"path": "sysupgrade/overview"
+		},
+		"depends": {
+			"acl": [ "luci-app-sysupgrade" ]
+		}
+	},
+	"admin/system/sysupgrade/sources": {
+		"title": "Sources",
+		"order": 2,
+		"action": {
+			"type": "view",
+			"path": "sysupgrade/sources"
+		},
+		"depends": {
+			"acl": [ "luci-app-sysupgrade" ]
+		}
+	},
+	"admin/system/sysupgrade/settings": {
+		"title": "Settings",
+		"order": 3,
+		"action": {
+			"type": "view",
+			"path": "sysupgrade/settings"
 		},
 		"depends": {
 			"acl": [ "luci-app-sysupgrade" ]

@@ -1,0 +1,122 @@
+/* luci-app-sysupgrade 视图样式：只用中性半透明底与语义色，深浅主题通用 */
+
+.lsu-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: center;
+	margin: 0.25rem 0 1rem;
+}
+
+.lsu-badge {
+	display: inline-block;
+	padding: 0.15rem 0.55rem;
+	border-radius: 999px;
+	font-size: 0.82rem;
+	font-weight: 600;
+	border: 1px solid transparent;
+	white-space: nowrap;
+}
+
+.lsu-badge.success {
+	color: #16a34a;
+	background: rgba(22, 163, 74, 0.12);
+	border-color: rgba(22, 163, 74, 0.35);
+}
+
+.lsu-badge.warning {
+	color: #d97706;
+	background: rgba(217, 119, 6, 0.12);
+	border-color: rgba(217, 119, 6, 0.35);
+}
+
+.lsu-badge.danger {
+	color: #dc2626;
+	background: rgba(220, 38, 38, 0.12);
+	border-color: rgba(220, 38, 38, 0.35);
+}
+
+.lsu-badge.notice {
+	color: #2563eb;
+	background: rgba(37, 99, 235, 0.12);
+	border-color: rgba(37, 99, 235, 0.35);
+}
+
+.lsu-badge.muted {
+	color: inherit;
+	background: rgba(127, 127, 127, 0.12);
+	border-color: rgba(127, 127, 127, 0.3);
+}
+
+.lsu-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+	gap: 0.75rem;
+	margin: 0.5rem 0 1rem;
+}
+
+.lsu-stat {
+	border: 1px solid rgba(127, 127, 127, 0.25);
+	border-radius: 0.5rem;
+	padding: 0.6rem 0.8rem;
+	background: rgba(127, 127, 127, 0.06);
+}
+
+.lsu-stat .lsu-label {
+	font-size: 0.78rem;
+	opacity: 0.75;
+}
+
+.lsu-stat .lsu-value {
+	font-size: 1.15rem;
+	font-weight: 650;
+	word-break: break-all;
+}
+
+.lsu-stat .lsu-sub {
+	font-size: 0.78rem;
+	opacity: 0.75;
+}
+
+.lsu-callout {
+	border-left: 3px solid rgba(127, 127, 127, 0.45);
+	padding: 0.55rem 0.8rem;
+	margin: 0.75rem 0;
+	background: rgba(127, 127, 127, 0.08);
+	border-radius: 0 0.35rem 0.35rem 0;
+}
+
+.lsu-callout.warning {
+	border-left-color: #d97706;
+}
+
+.lsu-callout.danger {
+	border-left-color: #dc2626;
+}
+
+.lsu-callout.success {
+	border-left-color: #16a34a;
+}
+
+.lsu-callout .lsu-callout-title {
+	font-weight: 650;
+	margin-bottom: 0.15rem;
+}
+
+.lsu-mono {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	word-break: break-all;
+}
+
+.lsu-muted {
+	opacity: 0.75;
+}
+
+.lsu-images {
+	margin: 0.4rem 0 0;
+}
+
+.lsu-images summary {
+	cursor: pointer;
+	font-weight: 600;
+}

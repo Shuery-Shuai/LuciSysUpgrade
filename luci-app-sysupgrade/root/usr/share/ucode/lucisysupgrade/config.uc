@@ -15,9 +15,9 @@ function defaults() {
 		webhook: '',
 		active_source: 'immortalwrt_official',
 		sources: [
-			{ name: 'immortalwrt_official', label: 'ImmortalWrt 官方', url: 'https://downloads.immortalwrt.org', layout: 'official', system: '', enabled: true },
-			{ name: 'shuery_bpi_r4', label: 'Shuery BPI-R4 构建', url: 'https://immortalwrt.shuery.lssa.fun', layout: 'bin_targets_root', system: '', enabled: false },
-			{ name: 'rtfw', label: 'RTFW 聚合站', url: 'https://rtfw.shuery.lssa.fun', layout: 'official', system: 'immortalwrt', enabled: false }
+			{ name: 'immortalwrt_official', label: 'ImmortalWrt 官方', url: 'https://downloads.immortalwrt.org', layout: 'official', system: '' },
+			{ name: 'shuery_bpi_r4', label: 'Shuery BPI-R4 构建', url: 'https://immortalwrt.shuery.lssa.fun', layout: 'bin_targets_root', system: '' },
+			{ name: 'rtfw', label: 'RTFW 聚合站', url: 'https://rtfw.shuery.lssa.fun', layout: 'official', system: 'immortalwrt' }
 		]
 	};
 }
@@ -32,6 +32,12 @@ function load() {
 
 	try {
 		let ctx = uci.cursor();
+
+		// rpcd 是长驻进程，而 ucode 的 uci 模块带进程级配置缓存：
+		// 不显式 reload 就会读到本进程启动时的旧配置 —— 表现为切换激活源之后
+		// 仍然去探测上一个源，结论来源与界面显示不一致。
+		ctx.load(CONFIG);
+
 		g = ctx.get_all(CONFIG, 'globals') ?? {};
 
 		ctx.foreach(CONFIG, 'source', function (s) {
@@ -43,8 +49,7 @@ function load() {
 				label: trim(s.label ?? name),
 				url: trim(s.url ?? ''),
 				layout: trim(s.layout ?? 'official'),
-				system: trim(s.system ?? ''),
-				enabled: (s.enabled ?? '1') != '0'
+				system: trim(s.system ?? '')
 			});
 		});
 	} catch (e) {
@@ -55,11 +60,12 @@ function load() {
 	if (!length(sources))
 		sources = defaults().sources;
 
-	let enabled = filter(sources, function (s) { return s.enabled; });
+	// 源只有“存在”与“激活”两种状态，没有 enabled 这个中间态：
+	// 激活源缺失或指向不存在的段时，退回列表里的第一个源。
 	let active = trim(g.active_source ?? '');
-	let hit = filter(enabled, function (s) { return s.name == active; });
+	let hit = filter(sources, function (s) { return s.name == active; });
 	if (!length(hit))
-		active = length(enabled) ? enabled[0].name : '';
+		active = length(sources) ? sources[0].name : '';
 
 	return {
 		enabled: (g.enabled ?? '1') != '0',
