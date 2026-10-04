@@ -67,7 +67,11 @@ return view.extend({
 			nodes.push(E('p', { 'class': 'lsu-muted' }, _('No events yet.')));
 		}
 		else {
-			nodes.push(fmt.kvTable([ _('Time'), _('Event'), _('Detail') ], events.map(function(e) {
+			nodes.push(fmt.kvTable([
+				{ text: _('Time'), class: 'lsu-col-time' },
+				{ text: _('Event'), class: 'lsu-col-layout' },
+				_('Detail')
+			], events.map(function(e) {
 				return [ stamp(e.ts), (e.event || '-') + ' · ' + (e.level || '-'), e.message || '' ];
 			})));
 		}

@@ -180,7 +180,8 @@ const VIEWS = [
 			{
 				name: '设置（含检测源）',
 				data: { ...baseStatus, layouts: [ 'official', 'bin_targets_root' ], config: { ...baseStatus.config, sources: baseSources.sources, active_source: baseSources.active_source } },
-				expect: [ 'Settings', 'Check sources', 'Add a source', 'Save and apply', 'Save settings', 'Scheduled task', 'Delete' ]
+				expect: [ 'Settings', 'Check sources', 'Add a source', 'Save and apply', 'Save settings', 'Scheduled task', 'Delete' ],
+				requireClass: 'lsu-table'
 			}
 		]
 	},
@@ -241,7 +242,12 @@ for (const spec of VIEWS) {
 				throw new Error('导出的对象缺少 load()/render()');
 
 			const data = await view.load();
-			const text = collectText(view.render(data)).join(' ');
+			const tree = view.render(data);
+			const text = collectText(tree).join(' ');
+
+			// 表格必须带 lsu-table（固定布局 + 表头同侧对齐），否则会出现表头与内容错位
+			if (c.requireClass && !JSON.stringify(tree).includes(c.requireClass))
+				throw new Error('缺少容器类: ' + c.requireClass);
 
 			const missing = c.expect.filter(s => !text.includes(s));
 			if (missing.length)

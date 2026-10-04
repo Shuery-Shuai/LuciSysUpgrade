@@ -136,33 +136,33 @@ return view.extend({
 
 		var rows = this.sources.map(function(s) {
 			return E('tr', {}, [
-				E('td', {}, E('input', {
+				E('td', { 'class': 'lsu-col-check' }, E('input', {
 					'type': 'radio',
 					'name': 'lsu-active-source',
 					'value': s.name,
 					'checked': (s.name === self.active) ? 'checked' : null,
 					'change': function(ev) { self.active = ev.target.value; }
 				})),
-				E('td', {}, s.label || s.name),
-				E('td', { 'class': 'lsu-mono' }, s.layout || '-'),
+				E('td', { 'class': 'lsu-col-name' }, s.label || s.name),
+				E('td', { 'class': 'lsu-mono lsu-col-layout' }, s.layout || '-'),
 				E('td', { 'class': 'lsu-mono' }, s.url || '-'),
-				E('td', { 'class': 'lsu-mono' }, s.system ? s.system : '-'),
-				E('td', {}, E('button', {
-					'class': 'btn cbi-button cbi-button-reset',
+				E('td', { 'class': 'lsu-mono lsu-col-system' }, s.system ? s.system : '-'),
+				E('td', { 'class': 'lsu-col-action' }, E('button', {
+					'class': 'lsu-rowbtn',
 					'click': ui.createHandlerFn(self, 'handleDelete', s.name)
 				}, _('Delete')))
 			]);
 		});
 
 		return [
-			E('table', { 'class': 'table' }, [
+			E('table', { 'class': 'table lsu-table lsu-sources' }, [
 				E('thead', {}, E('tr', {}, [
-					E('th', {}, _('Active')),
-					E('th', {}, _('Name')),
-					E('th', {}, _('Layout')),
+					E('th', { 'class': 'lsu-col-check' }, _('Active')),
+					E('th', { 'class': 'lsu-col-name' }, _('Name')),
+					E('th', { 'class': 'lsu-col-layout' }, _('Layout')),
 					E('th', {}, _('Address')),
-					E('th', {}, _('System')),
-					E('th', {}, _('Actions'))
+					E('th', { 'class': 'lsu-col-system' }, _('System')),
+					E('th', { 'class': 'lsu-col-action' }, _('Actions'))
 				])),
 				E('tbody', {}, rows)
 			]),

@@ -55,14 +55,22 @@ function callout(tone, title, content) {
 	]);
 }
 
+// columns 可传 [ '标题', { text: '标题', class: 'lsu-col-action' }, … ]
 function kvTable(columns, rows) {
-	return E('table', { 'class': 'table' }, [
+	function head(c) {
+		return (typeof c === 'string') ? { text: c, class: '' } : c;
+	}
+
+	return E('table', { 'class': 'table lsu-table' }, [
 		E('thead', {}, E('tr', {}, columns.map(function(c) {
-			return E('th', {}, c);
+			var h = head(c);
+			return E('th', { 'class': h.class || '' }, h.text);
 		}))),
 		E('tbody', {}, rows.map(function(r) {
 			return E('tr', {}, r.map(function(c, i) {
-				return E('td', { 'class': (i > 0) ? 'lsu-mono' : '' }, (c === '' || c === null) ? '-' : c);
+				var h = head(columns[i] || '');
+				var cls = ((h.class || '') + ((i > 0) ? ' lsu-mono' : '')).trim();
+				return E('td', { 'class': cls }, (c === '' || c === null) ? '-' : c);
 			}));
 		}))
 	]);

@@ -136,3 +136,81 @@
 	background: #2563eb;
 	transition: width 0.3s ease;
 }
+
+/* 应用内统一表格：固定布局 + 显式列宽 + 表头与内容同侧对齐
+   （直接用 LuCI 的 .table 时表头居中、列宽按内容分配，会出现表头与内容错位） */
+.lsu-table {
+	table-layout: fixed;
+	width: 100%;
+}
+
+.lsu-table th,
+.lsu-table td {
+	text-align: left;
+	vertical-align: middle;
+	padding: 0.45rem 0.6rem;
+}
+
+.lsu-table th {
+	white-space: nowrap;
+}
+
+.lsu-table td {
+	overflow-wrap: anywhere;
+}
+
+.lsu-col-check {
+	width: 3.25rem;
+	text-align: center !important;
+}
+
+.lsu-col-name {
+	width: 18%;
+}
+
+.lsu-col-layout {
+	width: 8.5rem;
+}
+
+.lsu-col-system {
+	width: 8rem;
+}
+
+.lsu-col-action {
+	width: 5.5rem;
+	text-align: right !important;
+}
+
+.lsu-col-time {
+	width: 11rem;
+	white-space: nowrap;
+}
+
+/* 行内动作按钮：轻量描边，避免一列橙色实心块抢走注意力 */
+.lsu-rowbtn {
+	padding: 0.2rem 0.6rem;
+	font-size: 0.85rem;
+	line-height: 1.4;
+	color: #dc2626;
+	background: transparent;
+	border: 1px solid rgba(220, 38, 38, 0.45);
+	border-radius: 0.3rem;
+	cursor: pointer;
+}
+
+.lsu-rowbtn:hover {
+	background: rgba(220, 38, 38, 0.12);
+}
+
+/* 窄屏：源表格的次要列（布局/系统）让位给名称与地址，避免横向溢出 */
+@media (max-width: 48rem) {
+	.lsu-sources .lsu-col-layout,
+	.lsu-sources .lsu-col-system {
+		display: none;
+	}
+
+	.lsu-sources th,
+	.lsu-sources td {
+		padding: 0.35rem 0.4rem;
+	}
+}
