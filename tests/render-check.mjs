@@ -181,7 +181,12 @@ const VIEWS = [
 				name: '设置（含检测源）',
 				data: { ...baseStatus, layouts: [ 'official', 'bin_targets_root' ], config: { ...baseStatus.config, sources: baseSources.sources, active_source: baseSources.active_source } },
 				expect: [ 'Settings', 'Check sources', 'Add a source', 'Save and apply', 'Save settings', 'Scheduled task', 'Delete' ],
-				requireClass: 'lsu-table'
+				requireClass: 'lsu-table',
+				// 表格列顺序：名称 → 布局 → 地址 → 系统；标识排最后（可留空自动生成）
+				orderNodes: [
+					[ 'Active', 'Name', 'Layout', 'Address', 'System', 'Actions' ],
+					[ 'Label', 'Layout', 'Address', 'System', 'Identifier' ]
+				]
 			}
 		]
 	},
@@ -252,6 +257,44 @@ for (const spec of VIEWS) {
 			const missing = c.expect.filter(s => !text.includes(s));
 			if (missing.length)
 				throw new Error('渲染结果缺少文案: ' + missing.join(', '));
+
+			if (c.orderNodes) {
+				// 把渲染树按深度优先拍平为文本序列，只保留非空短文本（表单标签/表头）
+				const flat = [];
+				(function walk(node) {
+					if (!node || typeof node !== 'object')
+						return;
+					if (Array.isArray(node))
+						return node.forEach(walk);
+					const own = node.children || [];
+					const inner = own.filter(x => typeof x === 'string').join(' ').trim();
+					if (inner)
+						flat.push(inner);
+					own.forEach(walk);
+				})(tree);
+
+				for (const seq of c.orderNodes) {
+					let at = -1;
+					for (const needle of seq) {
+						const next = flat.findIndex((t, i) => i > at && t.indexOf(needle) >= 0);
+						if (next < 0)
+							throw new Error('顺序断言失败：找不到「' + needle + '」');
+						at = next;
+					}
+				}
+			}
+
+			if (c.expectOrder) {
+				let pos = -1;
+				for (const needle of c.expectOrder) {
+					const at = text.indexOf(needle, pos + 1);
+					if (at < 0)
+						throw new Error('顺序断言失败：找不到「' + needle + '」');
+					if (at < pos)
+						throw new Error('顺序断言失败：「' + needle + '」应出现在「' + c.expectOrder[c.expectOrder.indexOf(needle) - 1] + '」之后');
+					pos = at;
+				}
+			}
 
 			for (const handler of spec.handlers || []) {
 				const name = (typeof handler === 'string') ? handler : handler.name;
