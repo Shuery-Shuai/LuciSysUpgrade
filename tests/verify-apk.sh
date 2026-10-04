@@ -10,7 +10,7 @@ REMOTE=/tmp/verify-lsu.apk
 fail=0
 
 echo "== 传到路由器并读取 =="
-cat "$APK" | $SSH "cat > $REMOTE"
+$SSH "cat > $REMOTE" < "$APK"
 echo "  远端体积: $($SSH "wc -c < $REMOTE" | tr -d ' ') 字节"
 
 # apk v3 是 ADB 格式：adbdump 出的是树，manifest 才是扁平清单（需 --allow-untrusted，
