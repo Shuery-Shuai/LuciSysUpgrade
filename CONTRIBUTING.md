@@ -48,15 +48,20 @@
 
 ### i18n
 
-- 源码里的用户可见字符串一律用**英文 msgid** 并包 `_()`，中文放 `po/zh_Hans/lucisysupgrade.po`；
+- 源码里的用户可见字符串一律用**英文 msgid** 并包 `_()`，中文放**包内** `luci-app-sysupgrade/po/zh_Hans/lucisysupgrade.po`
+  （官方约定：po 在包内，构建时由 luci.mk 为每个语言生成 `luci-i18n-sysupgrade-<lang>` 语言包）；
   menu.d 的标题同样走这套（LuCI 会用应用的 catalog 翻译菜单）。
-- 正式构建由 `luci.mk` 调 `po2lmo` 生成 `<app>.<lang>.lmo`；**真机装机脚本**用
-  `tools/po2lmo.py`（`po2lmo.c` 的 Python 移植）本地生成，并按运行时语言码同时装
+- 正式构建由 `luci.mk` 调 **po2lmo** 生成语言包；po2lmo 由 luci-base 提供，
+  所以构建需要完整 feeds（`feeds update -a && feeds install -a`），不能只装 luci feed。
+- **真机装机脚本**（开发流程，不走 SDK）用 `tools/po2lmo.py` 本地生成，并按运行时语言码同时装
   `lucisysupgrade.zh-cn.lmo` 与 `lucisysupgrade.zh_Hans.lmo`（新旧命名兼容）。
+- 语言包命名由 luci.mk 映射：`po/zh_Hans` → 包名 `luci-i18n-sysupgrade-zh-cn`。
 
 ### shell
 
 - POSIX `sh`，`shellcheck` 零告警（配置见 `.shellcheckrc`）。
+- **`$VAR` 后面紧跟中文/全角字符时必须写 `${VAR}`**：否则 shell 会把多字节字符当成变量名的一部分，
+  报 `HOST）: unbound variable` 这类莫名错误（已踩过两次：`$HOST）`、`$IMG 大小`）。
 
 ### LuCI 前端
 

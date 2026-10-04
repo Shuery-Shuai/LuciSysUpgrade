@@ -56,6 +56,18 @@ lucisysupgrade                        │
   最后一条源不允许删除。
 - 源与运行系统不同族时（按 `system` 段与地址判族），探测结果附带**跨发行版警告**。
 
+## i18n 与打包（对照官方）
+
+- 结构对照 `feeds/luci/applications/luci-app-acl`：`Makefile` + `htdocs/` + `po/<lang>/<name>.po`。
+- `luci.mk:326-351`：为 `po/` 下每个语言目录生成 `Package/luci-i18n-<basename>-<lang>`，
+  其 install 步骤执行 `po2lmo <po> $(LUCI_LIBRARYDIR)/i18n/<name>.<lang>.lmo`
+  （`LUCI_LIBRARYDIR` = `/usr/lib/lua/luci`）。
+- 因此：**po 必须在包内**，语言包由构建产出；主包不携带 `.lmo`。
+- 这套机制的构建前提是 `po2lmo`（由 `luci-base` 构建）→ 需要完整 feeds
+  （`luci-base` 依赖 `liblua`，来自 packages feed）。CI 与 `tools/build-local.sh` 都按此配置。
+- 设备侧开发流程不走 SDK：`tools/po2lmo.py`（po2lmo 的 Python 移植，哈希实现已用真实
+  `base.zh-cn.lmo` 反查校验）在本地生成 lmo 后投到设备。
+
 ## 调度设置
 
 - UCI：`schedule_kind`（off/daily/weekly/monthly）、`schedule_time`（24 小时制 `HH:MM`）、

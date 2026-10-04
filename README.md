@@ -91,6 +91,23 @@ sh tests/install-on-device.sh --uninstall ppuc     # 卸载
 node --check luci-app-sysupgrade/htdocs/luci-static/resources/view/sysupgrade/overview.js
 ```
 
+## i18n 与打包结构（跟随官方约定）
+
+```
+luci-app-sysupgrade/
+├── Makefile
+├── htdocs/luci-static/resources/{view/sysupgrade/*.js,sysupgrade/*.css,format.js}
+├── root/…                       # ucode 库、CLI、rpcd 对象、菜单、ACL、配置
+└── po/zh_Hans/lucisysupgrade.po # 翻译源就在包内
+```
+
+构建时由 `luci.mk` 为 `po/` 下的**每个语言目录生成一个独立语言包**
+（`luci-i18n-sysupgrade-zh-cn` 等，安装 `.lmo` 到 `/usr/lib/lua/luci/i18n/`），
+主包只含代码与配置 —— 这是 LuCI 生态的标准做法，别的语言可以直接加 `po/<lang>/` 参与。
+
+开发时（`tests/install-on-device.sh`）用 `tools/po2lmo.py` 在本地把 po 编成 lmo 再投到设备，
+省掉整套 SDK 构建；正式产物仍由 luci.mk 生成。
+
 ## 许可证
 
 GPL-2.0-or-later，见 `LICENSE`。约定见 `CONTRIBUTING.md`。

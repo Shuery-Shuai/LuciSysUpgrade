@@ -20,15 +20,8 @@ LMO="/tmp/lucisysupgrade.zh.lmo"
 SSH="ssh -o BatchMode=yes -o User=root $HOST"
 
 if [ "$MODE" = "install" ]; then
-	echo "== 编译 i18n =="
+	echo "== 编译 i18n（开发用，正式由 luci.mk 生成 luci-i18n-* 包）=="
 	python3 "$ROOT/tools/po2lmo.py" "$SRC/po/zh_Hans/lucisysupgrade.po" "$LMO"
-
-	echo "== 同步到 $HOST:$DEST =="
-	# COPYFILE_DISABLE: 阻止 macOS bsdtar 写入 .*_ 扩展属性文件
-	COPYFILE_DISABLE=1 tar --no-xattrs -C "$SRC/root" -czf - etc usr \
-		| $SSH "rm -rf '$DEST' && mkdir -p '$DEST/www' && tar -xzf - -C '$DEST'"
-	COPYFILE_DISABLE=1 tar --no-xattrs -C "$SRC/htdocs" -czf - luci-static \
-		| $SSH "tar -xzf - -C '$DEST/www'"
 
 	echo "== 写入 lmo =="
 	$SSH "mkdir -p /usr/lib/lua/luci/i18n && cat > /usr/lib/lua/luci/i18n/lucisysupgrade.zh-cn.lmo && cp /usr/lib/lua/luci/i18n/lucisysupgrade.zh-cn.lmo /usr/lib/lua/luci/i18n/lucisysupgrade.zh_Hans.lmo && ls -l /usr/lib/lua/luci/i18n/lucisysupgrade.*.lmo" < "$LMO"

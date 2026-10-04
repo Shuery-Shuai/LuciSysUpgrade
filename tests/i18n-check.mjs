@@ -44,7 +44,8 @@ for (const f of walk(path.join(PKG, 'root')).filter(f => f.endsWith('menu.d') ||
 }
 
 // 3) po 里的 msgid
-const po = fs.readFileSync(path.join(PKG, 'po/zh_Hans/lucisysupgrade.po'), 'utf8');
+const PO = path.join(PKG, 'po/zh_Hans/lucisysupgrade.po');
+const po = fs.readFileSync(PO, 'utf8');
 const translated = new Set();
 for (const m of po.matchAll(/^msgid\s+"((?:[^"\\]|\\.)*)"/gm))
 	translated.add(m[1].replace(/\\"/g, '"').replace(/\\n/g, '\n'));

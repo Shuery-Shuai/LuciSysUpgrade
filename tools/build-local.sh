@@ -1,44 +1,101 @@
 #!/bin/sh
 # 在本地 Docker 里用官方 SDK 构建两种包格式（25.12 → .apk，24.10 → .ipk）。
 # 目的：推送前先验证 Makefile 与打包布局；CI 的矩阵与此等价。
-# 用法: tools/build-local.sh           （首次会下载两个 SDK，约需数分钟）
+#
+# 结构说明：容器脚本通过 heredoc 从 stdin 交给 bash -s，因此脚本内部可以自由使用引号
+# （早先把整段脚本放进单引号参数里，被内层单引号截断过两次）。
+#
+# 用法: tools/build-local.sh
 set -eu
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 WORK="${WORK:-/tmp/lsu-build}"
 mkdir -p "$WORK"
 
-docker run --rm -v "$WORK:/build" -v "$REPO:/src:ro" debian:bookworm-slim bash -c '
-set -e
+docker run --rm -i \
+	-v "$WORK:/build" \
+	-v lsu-build-work:/work \
+	-v "$REPO:/src:ro" \
+	ubuntu:22.04 bash -s <<'INNER'
+set -eu
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq >/dev/null
-apt-get install -y -qq wget xz-utils zstd ca-certificates make gcc g++ python3 file unzip rsync libncurses-dev >/dev/null
+apt-get install -y -qq wget xz-utils zstd ca-certificates git make gcc g++ \
+	python3 python3-distutils gawk bzip2 gettext file unzip rsync zip \
+	libncurses-dev libssl-dev zlib1g-dev >/dev/null 2>&1
 
 build() {
 	v="$1"; url="$2"
 	echo "=== SDK $v ==="
-	# SDK 缓存放在挂载点，解包与构建都在容器内（macOS bind mount 上解包会失败）
-	[ -f "/build/sdk-$v.tar.zst" ] || wget -q -O "/build/sdk-$v.tar.zst" "$url"
-	rm -rf "/work/$v" && mkdir -p "/work/$v"
-	tar --zstd -xf "/build/sdk-$v.tar.zst" -C "/work/$v" --strip-components=1
+
+	# SDK 归档缓存在挂载点，解包与构建都在命名卷里（原生 Linux 文件系统）
+	if ! tar --zstd -tf "/build/sdk-$v.tar.zst" >/dev/null 2>&1; then
+		echo "  下载 SDK…"
+		wget -q -c --tries=3 --timeout=30 -O "/build/sdk-$v.tar.zst.part" "$url" || { echo "  下载失败"; return 1; }
+		mv "/build/sdk-$v.tar.zst.part" "/build/sdk-$v.tar.zst"
+	fi
+
+	if [ ! -f "/work/$v/Makefile" ]; then
+		echo "  解包 SDK…"
+		rm -rf "/work/$v"; mkdir -p "/work/$v"
+		tar --zstd -xf "/build/sdk-$v.tar.zst" -C "/work/$v" --strip-components=1
+	fi
+
 	cd "/work/$v"
 	rm -rf package/luci-app-sysupgrade
 	cp -r /src/luci-app-sysupgrade package/
-	./scripts/feeds update -a >/dev/null 2>&1
-	./scripts/feeds install -a >/dev/null 2>&1 || true
-	make defconfig >/dev/null 2>&1
+
+	# 官方 i18n 机制需要 po2lmo（luci-base 提供），而 luci-base 依赖 liblua → 需要全套 feeds
+	if [ ! -d feeds/luci/.git ] || [ ! -d feeds/packages/.git ]; then
+		echo "  拉取 feeds（全套，官方 i18n 机制需要）…"
+		./scripts/feeds update -a >/tmp/feeds-$v.log 2>&1 || { tail -15 /tmp/feeds-$v.log; return 1; }
+	fi
+	./scripts/feeds install -a >>/tmp/feeds-$v.log 2>&1 || true
+
+	echo "  配置…"
+	make defconfig >>/tmp/feeds-$v.log 2>&1 || { echo "  defconfig 失败："; tail -10 /tmp/feeds-$v.log; return 1; }
+
+	echo "  编译本包…"
+
 	if make package/luci-app-sysupgrade/compile V=s >/tmp/build-$v.log 2>&1; then
 		echo "  编译成功"
 	else
-		echo "  编译失败，日志尾部："; tail -25 /tmp/build-$v.log
+		echo "  编译返回非零，错误行："
+		grep -nE "Error [0-9]|error:|No rule|not found" /tmp/build-$v.log | tail -8 | sed "s/^/    /"
 	fi
+
 	mkdir -p "/build/out-$v"
-	find bin -name "luci-app-sysupgrade*" -type f -exec cp -v {} "/build/out-$v/" \; 2>/dev/null | sed "s|^|  |"
-	echo "--- /build/out-$v ---"
+	find bin -name "luci-app-sysupgrade*" -type f -exec cp {} "/build/out-$v/" \; 2>/dev/null
+
+	echo "  --- 产物 ---"
 	ls -l "/build/out-$v" 2>/dev/null | tail -3
+
+	# 不信任 make 的退出码：直接检查产物内容（包内应含 ucode 库、视图、lmo、配置、菜单与 ACL）
+	for art in /build/out-$v/*; do
+		[ -f "$art" ] || continue
+		echo "  === 校验 $(basename "$art") ==="
+		# .ipk 是 ar + data.tar.gz，可直接列内容；
+		# .apk 是 apk v3 的 ADB 格式（不是 tar），这里只校验魔数与体积，
+		# 内容用真机的 apk-tools 深验：tests/verify-apk.sh
+		case "$art" in
+			*.ipk) ar p "$art" data.tar.gz 2>/dev/null | tar -tzf - 2>/dev/null > /tmp/list.txt ;;
+			*)     if head -c 4 "$art" | grep -q "ADBd"; then echo "    ✓ apk v3 魔数（ADBd）"; else echo "    ✗ apk 魔数不对"; fi
+			       echo "    体积: $(wc -c < "$art") 字节"
+			       echo "    （内容深验：tests/verify-apk.sh）"
+			       : > /tmp/list.txt ;;
+		esac
+		total=$(wc -l < /tmp/list.txt)
+		echo "    文件数: $total"
+		for want in "usr/share/ucode/lucisysupgrade/util.uc" "usr/bin/lucisysupgrade" "usr/share/rpcd/ucode/lucisysupgrade" \
+			"www/luci-static/resources/view/sysupgrade/overview.js" "usr/lib/lua/luci/i18n/lucisysupgrade.zh-cn.lmo" \
+			"etc/config/lucisysupgrade" "usr/share/luci/menu.d/luci-app-sysupgrade.json" "usr/share/rpcd/acl.d/luci-app-sysupgrade.json"; do
+			if grep -q "$want" /tmp/list.txt; then echo "    ✓ $want"; else echo "    ✗ 缺少 $want"; fi
+		done
+	done
 }
 
 build 25.12.0 "https://downloads.openwrt.org/releases/25.12.0/targets/x86/64/openwrt-sdk-25.12.0-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst"
 build 24.10.6 "https://downloads.openwrt.org/releases/24.10.6/targets/x86/64/openwrt-sdk-24.10.6-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
+
 echo "=== 双产物构建结束 ==="
-'
+INNER
