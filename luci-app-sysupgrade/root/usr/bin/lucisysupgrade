@@ -12,7 +12,8 @@ let state = require('lucisysupgrade.state');
 let scheduler = require('lucisysupgrade.scheduler');
 let download = require('lucisysupgrade.download');
 
-const VERSION = '0.1.0';
+let version = require('lucisysupgrade.version');
+const VERSION = version.VERSION;
 
 function usage() {
 	print("用法: lucisysupgrade <命令> [选项]\n\n");

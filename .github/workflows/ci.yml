@@ -29,6 +29,9 @@ jobs:
 
             # 首次推送前未能在本机跑通 prettier（npm registry 不可达），
             # 因此先设为非阻塞；本地执行 `npx prettier@3 --write "**/*.{js,json,yml,md}"` 后改为阻塞。
+            - name: 版本一致性（Makefile ↔ version.uc）
+              run: node tests/version-check.mjs
+
             - name: i18n 检查（msgid 与 po 一致性）
               run: node tests/i18n-check.mjs
 

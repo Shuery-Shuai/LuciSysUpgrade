@@ -12,6 +12,9 @@ try() { "$@" || { echo "  ↑ 上一步失败"; fail=1; }; }
 
 echo "======== 主机侧 ========"
 
+step "版本一致性（Makefile ↔ version.uc）"
+try node "$ROOT/tests/version-check.mjs"
+
 step "i18n 一致性（msgid ↔ po）"
 try node "$ROOT/tests/i18n-check.mjs"
 
