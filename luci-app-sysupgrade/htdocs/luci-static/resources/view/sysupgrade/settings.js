@@ -143,7 +143,7 @@ return view.extend({
 					'checked': (s.name === self.active) ? 'checked' : null,
 					'change': function(ev) { self.active = ev.target.value; }
 				})),
-				E('td', { 'class': 'lsu-col-name' }, s.label || s.name),
+				E('td', { 'class': 'lsu-col-name', 'title': _('identifier') + ': ' + s.name }, s.label || s.name),
 				E('td', { 'class': 'lsu-mono lsu-col-layout' }, s.layout || '-'),
 				E('td', { 'class': 'lsu-mono' }, s.url || '-'),
 				E('td', { 'class': 'lsu-mono lsu-col-system' }, s.system ? s.system : '-'),
@@ -194,29 +194,36 @@ return view.extend({
 		})));
 
 		return [
-			field(_('Preset'), preset),
-			field(_('Identifier'), E('input', {
-				'class': 'cbi-input-text', 'type': 'text', 'value': this.form.name, 'placeholder': 'my_mirror',
-				'input': function(ev) { self.form.name = ev.target.value; }
-			}), _('lower-case letters, digits, underscore; used as the UCI section name')),
+			field(_('Preset'), preset, _('fills the fields below; you can edit everything afterwards')),
+
+			// 顺序与上方表格列保持一致：名称 → 布局 → 地址 → 系统
 			field(_('Label'), E('input', {
 				'class': 'cbi-input-text', 'type': 'text', 'value': this.form.label, 'placeholder': _('My mirror'),
 				'input': function(ev) { self.form.label = ev.target.value; }
-			})),
-			field(_('Address'), E('input', {
-				'class': 'cbi-input-text', 'type': 'text', 'value': this.form.url, 'placeholder': 'https://example.invalid/immortalwrt',
-				'input': function(ev) { self.form.url = ev.target.value; }
-			})),
+			}), _('shown in the table; free text, duplicates allowed')),
+
 			field(_('Layout'), E('select', {
 				'class': 'cbi-input-select',
 				'change': function(ev) { self.form.layout = ev.target.value; }
 			}, layouts.map(function(l) {
-				return E('option', { 'value': l, 'selected': (l === self.form.layout) ? 'selected' : null }, l);
-			})), _('official: <base>/{snapshots|releases/<version>}/targets/… — bin_targets_root: <base>/targets/…')),
+				return E('option', { 'value': l, 'selected': (l === this.form.layout) ? 'selected' : null }, l);
+			}, this)), _('official: <base>/{snapshots|releases/<version>}/targets/… — bin_targets_root: <base>/targets/…')),
+
+			field(_('Address'), E('input', {
+				'class': 'cbi-input-text', 'type': 'text', 'value': this.form.url, 'placeholder': 'https://example.invalid/immortalwrt',
+				'input': function(ev) { self.form.url = ev.target.value; }
+			})),
+
 			field(_('System'), E('input', {
 				'class': 'cbi-input-text', 'type': 'text', 'value': this.form.system, 'placeholder': _('optional, e.g. immortalwrt'),
 				'input': function(ev) { self.form.system = ev.target.value; }
 			}), _('path segment for mirrors that host several systems, e.g. rtfw/immortalwrt')),
+
+			field(_('Identifier'), E('input', {
+				'class': 'cbi-input-text', 'type': 'text', 'value': this.form.name, 'placeholder': _('auto-generated when empty'),
+				'input': function(ev) { self.form.name = ev.target.value; }
+			}), _('internal UCI section name (lower-case letters, digits, underscore); normally you do not need to set it')),
+
 			E('div', { 'class': 'lsu-toolbar' }, [
 				E('button', {
 					'class': 'btn cbi-button cbi-button-action',

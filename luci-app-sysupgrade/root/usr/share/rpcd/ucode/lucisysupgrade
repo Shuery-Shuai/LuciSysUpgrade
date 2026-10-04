@@ -151,9 +151,33 @@ function source_args(req) {
 	};
 }
 
+// 标识（UCI 段名）留空时自动派生：优先取名称里的 ASCII 词，其次取地址主机名，
+// 再按需拼上系统段，最后保证唯一。
+function derive_name(inp, existing) {
+	let base = lc(replace(trim(inp.label ?? ''), /[^A-Za-z0-9]+/g, '_'));
+
+	// 名称里没有 ASCII 词时，用主机名首段（rtfw.shuery.lssa.fun → rtfw）比整串更可读
+	if (!match(base, /[a-z0-9]/)) {
+		let m = match(trim(inp.url ?? ''), /^https?:\/\/([^\/.:]+)/);
+		base = m ? lc(replace(m[1], /[^A-Za-z0-9]+/g, '_')) : 'source';
+	}
+
+	if (length(trim(inp.system ?? '')))
+		base += '_' + lc(replace(trim(inp.system), /[^A-Za-z0-9]+/g, '_'));
+
+	base = replace(base, /^_+|_+$/g, '');
+	base = substr(length(base) ? base : 'source', 0, 24);
+
+	let name = base;
+	for (let i = 2; length(filter(existing, function (s) { return s.name == name; })); i++)
+		name = base + '_' + i;
+
+	return name;
+}
+
 function validate_source(inp) {
-	if (!length(inp.name) || !match(inp.name, /^[a-z0-9][a-z0-9_-]{0,31}$/))
-		return '标识只能用小写字母、数字、下划线或连字符（以字母/数字开头，≤32 字符）';
+	if (length(inp.name) && !match(inp.name, /^[a-z0-9][a-z0-9_-]{0,31}$/))
+		return '标识只能用小写字母、数字、下划线或连字符（以字母/数字开头，≤32 字符，留空则自动生成）';
 	if (!length(inp.label))
 		return '名称不能为空';
 	if (!match(inp.url, /^https?:\/\/[^ \t]+$/))
@@ -171,7 +195,9 @@ function do_source_add(req) {
 
 	if (length(err))
 		return { ok: false, error: err };
-	if (length(filter(conf.sources, function (s) { return s.name == inp.name; })))
+	if (!length(inp.name))
+		inp.name = derive_name(inp, conf.sources);
+	else if (length(filter(conf.sources, function (s) { return s.name == inp.name; })))
 		return { ok: false, error: '标识已存在：' + inp.name };
 
 	if (!uci_write(function (ctx) {

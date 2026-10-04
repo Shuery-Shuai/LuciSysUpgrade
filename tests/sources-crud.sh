@@ -35,6 +35,14 @@ check "地址非法" "地址必须" "$(call source_add '{"name":"bad_url","label
 check "布局非法" "未知布局" "$(call source_add '{"name":"bad_layout","label":"x","url":"https://a.b","layout":"nope"}' | tr -d '\n')"
 check "重名被拒" "标识已存在" "$(call source_add '{"name":"test_mirror","label":"x","url":"https://a.b"}' | tr -d '\n')"
 
+echo "== 3b) 标识留空 → 自动派生 =="
+out=$(call source_add '{"name":"","label":"自动派生测试","url":"https://rtfw.shuery.lssa.fun","layout":"official","system":"openwrt"}' | tr -d '\n')
+check "自动派生成功" '"ok": true' "$out"
+check "按主机名首段派生" "rtfw_openwrt" "$out"
+DERIVED=$(printf '%s' "$out" | sed -n 's/.*"name": "\([a-z0-9_]*\)".*/\1/p' | tail -1)
+echo "  派生出的标识: $DERIVED"
+run "ubus call lucisysupgrade source_del '{\"name\":\"$DERIVED\"}' >/dev/null"
+
 echo "== 4) 编辑已有源 =="
 check "编辑成功" '"ok": true' "$(call source_set '{"name":"test_mirror","label":"测试镜像2","url":"https://rtfw.shuery.lssa.fun","layout":"official","system":"openwrt"}' | tr -d '\n')"
 

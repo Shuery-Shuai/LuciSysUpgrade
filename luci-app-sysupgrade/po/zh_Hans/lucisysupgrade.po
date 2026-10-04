@@ -299,8 +299,6 @@ msgstr "— 选择预设 —"
 msgid "Identifier"
 msgstr "标识"
 
-msgid "lower-case letters, digits, underscore; used as the UCI section name"
-msgstr "小写字母、数字、下划线；会作为 UCI 段名"
 
 msgid "Label"
 msgstr "名称"
@@ -457,3 +455,19 @@ msgstr "说明"
 
 msgid "Files: %s , %s"
 msgstr "文件：%s 、%s"
+
+# 添加源：字段顺序跟随表格；标识可自动生成
+msgid "fills the fields below; you can edit everything afterwards"
+msgstr "会自动填入下面的字段，填完仍可修改"
+
+msgid "shown in the table; free text, duplicates allowed"
+msgstr "表格里显示的就是它；随意写，允许重复"
+
+msgid "auto-generated when empty"
+msgstr "留空则自动生成"
+
+msgid "internal UCI section name (lower-case letters, digits, underscore); normally you do not need to set it"
+msgstr "内部用的 UCI 段名（小写字母、数字、下划线）；一般不需要填"
+
+msgid "identifier"
+msgstr "标识"
