@@ -43,7 +43,11 @@ build() {
 
 	cd "/work/$v"
 	rm -rf package/luci-app-sysupgrade
-	cp -r /src/luci-app-sysupgrade package/
+	# 用 git 干净树构建（与 CI 的 checkout 一致）。直接拷贝工作区会掩盖
+	# 被 .gitignore 误伤的文件 —— 已踩过：CLI 主程序缺失只在 CI 暴露。
+	rm -rf "/work/src-$v"; mkdir -p "/work/src-$v"
+	git -C /src archive HEAD luci-app-sysupgrade | tar -x -C "/work/src-$v"
+	cp -r "/work/src-$v/luci-app-sysupgrade" package/
 
 	# 官方 i18n 机制需要 po2lmo（luci-base 提供），而 luci-base 依赖 liblua → 需要全套 feeds
 	if [ ! -d feeds/luci/.git ] || [ ! -d feeds/packages/.git ]; then

@@ -42,6 +42,18 @@ jobs:
             - name: shellcheck
               run: shellcheck tests/*.sh
 
+            - name: 包目录文件必须都已入库
+              # 踩过的坑：.gitignore 写成非锚定的 bin/，把 root/usr/bin/lucisysupgrade 忽略了，
+              # 于是本地构建（从工作区拷贝）有 CLI、CI 构建（checkout）没有 —— 产物缺主程序。
+              run: |
+                  stray=$(git status --ignored --short -- luci-app-sysupgrade | grep -v '^ M' || true)
+                  if [ -n "$stray" ]; then
+                    echo "这些文件在包目录里但不在仓库中（CI 会漏掉）："
+                    echo "$stray"
+                    exit 1
+                  fi
+                  echo "包目录内所有文件均已入库"
+
     ucode-syntax:
         runs-on: ubuntu-latest
         steps:
