@@ -350,6 +350,9 @@ function cleanup() {
 	let ok = true;
 	try {
 		for (let f in fs.lsdir(DIR) ?? []) {
+			// 保留事件日志：删除下载文件不该顺带清空「日志」页（只有 logs_clear 才清）
+			if (f == 'events.jsonl')
+				continue;
 			try { fs.unlink(DIR + '/' + f); } catch (e) { ok = false; }
 		}
 	} catch (e) {

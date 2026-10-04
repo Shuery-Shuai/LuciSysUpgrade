@@ -112,7 +112,17 @@ craft running "$PID" "$DIR/ghost.bin" 1024 "00" - "$URL" - >/dev/null
 run "ubus call lucisysupgrade cleanup >/dev/null"
 sleep 1
 check "进程组已终止" "已终止" "$(run "kill -0 -$PID 2>/dev/null && echo 仍在 || echo 已终止")"
-check "目录已清空" "空" "$(run "[ -z \"\$(ls $DIR 2>/dev/null)\" ] && echo 空 || ls $DIR")"
+check "只剩事件日志" "events.jsonl" "$(run "ls $DIR 2>/dev/null | tr '\n' ' '")"
+check "下载产物已删" "已删" "$(run "ls $DIR 2>/dev/null | grep -qE 'itb|ghost' && echo 仍在 || echo 已删")"
+
+echo "== 分支 6：cleanup 只删下载产物，不清空事件日志 =="
+run "ubus call lucisysupgrade logs_clear >/dev/null"
+run "ubus call lucisysupgrade check '{}' >/dev/null"
+run "ubus call lucisysupgrade cleanup >/dev/null"
+COUNT='ucode -L /usr/share/ucode -e "print(length(require(\"lucisysupgrade.eventlog\").tail(50)))"'
+check "cleanup 后事件日志仍在" "1" "$(run "$COUNT")"
+run "ubus call lucisysupgrade logs_clear >/dev/null"
+check "logs_clear 之后为 0" "0" "$(run "$COUNT")" 
 
 echo "== 收尾 =="
 run "ubus call lucisysupgrade cleanup >/dev/null; rm -f $CRAFT $INFO; echo '  已清理（激活源保持不变）'"
