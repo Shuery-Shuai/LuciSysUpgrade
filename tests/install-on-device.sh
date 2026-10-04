@@ -26,6 +26,15 @@ if [ "$MODE" = "install" ]; then
 	echo "== 写入 lmo =="
 	$SSH "mkdir -p /usr/lib/lua/luci/i18n && cat > /usr/lib/lua/luci/i18n/lucisysupgrade.zh-cn.lmo && cp /usr/lib/lua/luci/i18n/lucisysupgrade.zh-cn.lmo /usr/lib/lua/luci/i18n/lucisysupgrade.zh_Hans.lmo && ls -l /usr/lib/lua/luci/i18n/lucisysupgrade.*.lmo" < "$LMO"
 
+	echo "== 推送文件到设备 =="
+	# 踩过的坑：脚本此前只从 $DEST 拷贝到系统，却没有任何步骤把当前文件推到 $DEST，
+	# 于是「安装」一直在拷几小时前的残留（输出被重定向，没人发现）。
+	# macOS 的 bsdtar 必须关掉扩展属性，否则会带出 ._* 垃圾文件。
+	COPYFILE_DISABLE=1 tar --no-xattrs -C "$SRC/root" -czf - etc usr | \
+		$SSH "rm -rf '$DEST' && mkdir -p '$DEST' && tar -xzf - -C '$DEST'"
+	COPYFILE_DISABLE=1 tar --no-xattrs -C "$SRC/htdocs" -czf - luci-static | \
+		$SSH "mkdir -p '$DEST/www' && tar -xzf - -C '$DEST/www'"
+
 	echo "== 安装到系统 =="
 	$SSH "set -e
 		cd '$DEST'
@@ -33,6 +42,10 @@ if [ "$MODE" = "install" ]; then
 		tar -cf - www/luci-static | tar -xf - -C /
 		[ -f /etc/config/lucisysupgrade ] || cp etc/config/lucisysupgrade /etc/config/lucisysupgrade
 		chmod 755 /usr/bin/lucisysupgrade /usr/share/rpcd/ucode/lucisysupgrade /etc/uci-defaults/80_lucisysupgrade
+		chown root:root /usr/bin/lucisysupgrade /usr/share/rpcd/ucode/lucisysupgrade /etc/uci-defaults/80_lucisysupgrade
+		chown -R root:root /usr/share/ucode/lucisysupgrade /www/luci-static/resources/sysupgrade \
+			/www/luci-static/resources/view/sysupgrade /usr/share/luci/menu.d/luci-app-sysupgrade.json \
+			/usr/share/rpcd/acl.d/luci-app-sysupgrade.json /etc/config/lucisysupgrade
 		find /usr/share/ucode/lucisysupgrade /www/luci-static/resources/sysupgrade /www/luci-static/resources/view/sysupgrade -type f -exec chmod 644 {} +
 		chmod 644 /etc/config/lucisysupgrade /usr/share/luci/menu.d/luci-app-sysupgrade.json /usr/share/rpcd/acl.d/luci-app-sysupgrade.json
 		/etc/uci-defaults/80_lucisysupgrade && rm -f /etc/uci-defaults/80_lucisysupgrade
@@ -42,7 +55,12 @@ if [ "$MODE" = "install" ]; then
 		echo '== ubus 方法 =='; ubus -v list lucisysupgrade
 		echo '== 静态资源 =='; for u in /luci-static/resources/view/sysupgrade/overview.js /luci-static/resources/view/sysupgrade/sources.js /luci-static/resources/view/sysupgrade/settings.js /luci-static/resources/sysupgrade/format.js /luci-static/resources/sysupgrade/sysupgrade.css; do
 			printf '%s ' \"\$u\"; curl -sk -o /dev/null -w '%{http_code}\n' \"https://127.0.0.1\$u\"; done
-		echo '== 激活源 =='; uci get lucisysupgrade.globals.active_source"
+		echo '== 激活源 =='; uci get lucisysupgrade.globals.active_source
+		echo '== 版本自检 =='; lucisysupgrade version"
+	if ! $SSH "lucisysupgrade version" | grep -q "$(node "$ROOT/tests/version-check.mjs" >/dev/null 2>&1; sed -n "s/.*VERSION:\s*'\([^']*\)'.*/\1/p" "$SRC/root/usr/share/ucode/lucisysupgrade/version.uc")"; then
+		echo "  ✗ 设备回报的版本与 version.uc 不一致 —— 推送可能没生效"; exit 1
+	fi
+	echo "  ✓ 设备版本与 version.uc 一致"
 else
 	echo "== 从 $HOST 卸载 =="
 	$SSH "set -e
