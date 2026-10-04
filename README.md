@@ -63,7 +63,13 @@ LuCI 界面：**系统 → 系统更新 → 更新检测**（只读，含「检�
 ## 开发与测试
 
 ```sh
-sh tests/run-on-device.sh ppuc   # 同步到路由器 /tmp 并跑 M1 闭环（无需 root）
+# 只读验证：同步到路由器 /tmp 并跑 M1 闭环（无需 root）
+sh tests/run-on-device.sh ppuc
+
+# 装机验证：安装到系统（走 root 的 ssh 通道，映射同 luci.mk：htdocs/ → /www/）
+sh tests/install-on-device.sh ppuc
+sh tests/install-on-device.sh --uninstall ppuc     # 卸载
+
 node --check luci-app-sysupgrade/htdocs/luci-static/resources/view/sysupgrade/overview.js
 ```
 

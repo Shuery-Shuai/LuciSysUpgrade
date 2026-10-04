@@ -7,14 +7,16 @@ set -eu
 HOST="${1:-ppuc}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SRC="$ROOT/luci-app-sysupgrade"
+# 只读用途，全程以普通用户执行；安装脚本用另一个目录
 DEST="/tmp/lucisysupgrade-test"
 LIBDIR="$DEST/usr/share/ucode"
 
 echo "== 同步到 $HOST:$DEST =="
 # COPYFILE_DISABLE: 阻止 macOS bsdtar 写入 ._* 扩展属性文件
-COPYFILE_DISABLE=1 tar --no-xattrs -C "$SRC/root" -czf - \
-	etc usr \
-	| ssh "$HOST" "rm -rf '$DEST' && mkdir -p '$DEST' && tar -xzf - -C '$DEST' && chmod +x '$DEST/usr/bin/lucisysupgrade'"
+COPYFILE_DISABLE=1 tar --no-xattrs -C "$SRC/root" -czf - etc usr \
+	| ssh "$HOST" "rm -rf '$DEST' && mkdir -p '$DEST/www' && tar -xzf - -C '$DEST' && chmod +x '$DEST/usr/bin/lucisysupgrade'"
+COPYFILE_DISABLE=1 tar --no-xattrs -C "$SRC/htdocs" -czf - luci-static \
+	| ssh "$HOST" "tar -xzf - -C '$DEST/www'"
 
 run() {
 	ssh "$HOST" "ucode -L '$LIBDIR' '$DEST/usr/bin/lucisysupgrade' $1" || true
