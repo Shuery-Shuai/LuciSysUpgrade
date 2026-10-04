@@ -33,6 +33,8 @@
   库文件必须放在 `root/usr/share/ucode/lucisysupgrade/` 下（ucode 默认搜索路径是 `/usr/share/ucode`）。
 - 已踩过的坑，别再踩：
   - 没有 `isNaN()`：用 `n != n` 判定 NaN（`int('abc')` 返回 NaN 且 `type` 是 `double`）。
+  - **函数声明不会提升**：`function a()` 调用后面定义的 `function b()` 会报
+    `access to undeclared variable b` —— 依赖顺序必须是「先定义后使用」。
   - 没有 `strftime()`：用 `gmtime()` 的字段自己格式化；注意 `mon` 是 **1 基**、日期字段是 `mday`。
   - `substr()` **按字节**切：中文字符 3 字节，`substr('日一二三', 2, 1)` 会切出半个字（显示成 `�`）。
     要按字符取内容就用数组映射，别切多字节字符串。
@@ -68,6 +70,12 @@
   （luci.js 的正则 `/^require[ \t]+(\S+)(?:[ \t]+as[ \t]+([a-zA-Z_]\S*))?$/`），
   不写 `as` 时变量名是模块路径把非字母数字换成下划线（`sysupgrade_format`）。
 
+## 改代码时的纪律
+
+- **脚本化改动必须带断言**：用 python/sed 批量改文件时，每个 `replace`/`sed` 后都要断言"确实改了"。
+  已经踩过两次静默失败：一次是 `--apply` 参数解析分支没插进去（搜索串多带了一个 `else`），
+  一次是 po 清理误删了 menu.d 用的 `Overview`。改完必须跑对应检查（`tests/*.sh`、`node tests/*.mjs`）。
+
 ## 测试
 
 - `node tests/i18n-check.mjs`：比对代码/menu.d 用到的 msgid 与 po 条目，缺翻译即失败（会列出文件与 msgid）。
@@ -79,6 +87,8 @@
 - `tests/run-on-device.sh [ssh别名]`：把包内文件同步到路由器 `/tmp`，做全量 `ucode -c` 编译检查，
   并跑 `version / sources / status / check` 三条真机场景（官方源、自有构建站、rtfw）。
 - `tests/install-on-device.sh [ssh别名]`：装机（含 i18n 编译），`--uninstall` 卸载。
+- `tests/scheduler.sh [ssh别名]`：真机验证定时任务 —— 写入/幂等/块内被手改后自愈/关闭时只移除标记块，
+  并断言**块外内容一字不动**（含你原有的 nginx-util 与 acme 两行）；结束时用备份还原。
 - `tests/sources-crud.sh [ssh别名]`：真机验证自定义源的增删改与护栏（非法输入、重名、标识自动派生、
   激活源自愈、至少保留一条源）**以及调度设置**（频率/星期/号数/时间的合法与非法输入），
   会临时改动配置并在结束时用备份还原。

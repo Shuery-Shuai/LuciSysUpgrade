@@ -65,6 +65,21 @@ lucisysupgrade                        │
 - 号数限制 1-28：29-31 号在部分月份不会触发，这个坑对"每月检查"是致命的。
 - 校验在 `set_options` 里做（频率白名单、时间正则、星期 1-7、号数 1-28），非法即拒。
 
+## 定时任务落地（M4）
+
+- `scheduler.uc` 负责把调度写进 `/etc/crontabs/root` 的**受管标记块**：
+  ```
+  # BEGIN lucisysupgrade (managed block, do not edit)
+  0 4 * * * /usr/bin/lucisysupgrade cron >> /tmp/lucisysupgrade/cron.log 2>&1
+  # END lucisysupgrade
+  ```
+- 三条安全约定：**只动标记块**（块外的 nginx-util / acme 等原样保留）、写前备份到
+  `<crontab>.lucisysupgrade.bak`、内容一致就不写文件也不重启 cron（幂等）。
+- 触发点：`set_options` 成功后自动同步；装机时 uci-defaults 同步一次；
+  手动可用 `lucisysupgrade schedule [--apply]` 查看/应用。
+- `lucisysupgrade cron` 是定时入口：检测 → 记录事件 → 档位 ≥1 且有更新时自动下载；
+  档位 2 需要的刷写能力尚未实现（记在事件日志里）。
+
 ## 事件日志
 
 - `eventlog.uc` 往 `/tmp/lucisysupgrade/events.jsonl` 追加单行 JSON：`{ts, level, event, message, data?}`。

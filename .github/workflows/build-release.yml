@@ -1,0 +1,78 @@
+name: Build packages
+
+# 双产物：25.12 SDK → .apk（ImmortalWrt/OpenWrt 25.x 用 apk），24.10 SDK → .ipk（仍用 opkg）
+# 同一份步骤先在本地用 tools/build-local.sh 跑通，才推到这里。
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sdk: '25.12.0'
+            format: apk
+            url: https://downloads.openwrt.org/releases/25.12.0/targets/x86/64/openwrt-sdk-25.12.0-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
+          - sdk: '24.10.6'
+            format: ipk
+            url: https://downloads.openwrt.org/releases/24.10.6/targets/x86/64/openwrt-sdk-24.10.6-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+    name: SDK ${{ matrix.sdk }} (${{ matrix.format }})
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装依赖
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq zstd wget
+
+      - name: 下载并解包 SDK
+        run: |
+          wget -q -O sdk.tar.zst "${{ matrix.url }}"
+          mkdir sdk
+          tar --zstd -xf sdk.tar.zst -C sdk --strip-components=1
+
+      - name: 放入包并准备 feeds
+        run: |
+          cd sdk
+          cp -r "$GITHUB_WORKSPACE/luci-app-sysupgrade" package/
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a || true
+          make defconfig
+
+      - name: 编译
+        run: cd sdk && make package/luci-app-sysupgrade/compile V=s
+
+      - name: 收集产物
+        run: |
+          mkdir -p out
+          find sdk/bin -name 'luci-app-sysupgrade*' -type f -exec cp {} out/ \;
+          ls -l out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: luci-app-sysupgrade-${{ matrix.format }}
+          path: out/*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: 创建 Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          find artifacts -type f -maxdepth 2 | sed 's/^/  /'
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes \
+            $(find artifacts -type f -maxdepth 2)

@@ -12,7 +12,8 @@
 					"check",
 					"version",
 					"download_status",
-					"logs"
+					"logs",
+					"schedule_status"
 				]
 			}
 		},

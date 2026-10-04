@@ -6,8 +6,9 @@
 > 当前里程碑：**M1（检测闭环）与 M2（下载 + sha256/体积校验）** 均已在 Banana Pi BPI-R4
 > （ImmortalWrt SNAPSHOT，apk-tools 3.0.5）上验证通过：下载 28.8 MB 镜像并与源站公布值比对一致，
 > 续传/ETag 变化/sha256 不匹配等分支由 `tests/m2-state-machine.sh` 断言覆盖。
-> 事件日志（设置页里的「定时任务」与 webhook 尚未启用）、M4（定时检测 + 双产物 CI）待做；
-> **M3（刷写）暂不实现**。
+> M4 进行中：**定时任务已落地**（写入 `/etc/crontabs/root` 的受管标记块，块外内容一字不动，
+> 见 `tests/scheduler.sh`）；双产物 CI（`.apk` / `.ipk`）已就绪，构建先用 `tools/build-local.sh`
+> 在本地 Docker 里验证。**M3（刷写）暂不实现**。
 
 ## 它做什么 / 不做什么
 

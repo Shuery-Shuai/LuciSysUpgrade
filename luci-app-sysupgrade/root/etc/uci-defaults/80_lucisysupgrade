@@ -19,3 +19,8 @@ for s in $(uci -q show lucisysupgrade | sed -n 's/^lucisysupgrade\.\([^.=]*\)=so
 done
 
 exit 0
+
+# 按当前配置同步 crontab（只动自己的标记块）
+if [ -x /usr/bin/lucisysupgrade ]; then
+	/usr/bin/lucisysupgrade schedule --apply >/dev/null 2>&1 || true
+fi

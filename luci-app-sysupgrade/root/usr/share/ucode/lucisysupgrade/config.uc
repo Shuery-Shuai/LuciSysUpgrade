@@ -100,8 +100,8 @@ function schedule_cron(conf) {
 		return '';
 
 	let t = match(trim(conf?.schedule_time ?? '04:00'), /^([0-9]{1,2}):([0-9]{2})$/);
-	let hour = t ? t[1] : '4';
-	let min = t ? t[2] : '0';
+	let hour = t ? '' + int(t[1]) : '4';
+	let min = t ? '' + int(t[2]) : '0';
 
 	if (kind == 'weekly')
 		return sprintf('%s %s * * %d', min, hour, int(conf?.schedule_weekday ?? 1));

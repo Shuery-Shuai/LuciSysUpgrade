@@ -13,6 +13,7 @@ let verdict = require('lucisysupgrade.verdict');
 let state = require('lucisysupgrade.state');
 let download = require('lucisysupgrade.download');
 let eventlog = require('lucisysupgrade.eventlog');
+let scheduler = require('lucisysupgrade.scheduler');
 let uci = require('uci');
 
 const VERSION = '0.3.0';
@@ -146,9 +147,17 @@ function do_set_options(req) {
 		return { ok: false, error: 'uci commit 失败' };
 
 	let out = config.load();
-	eventlog.append('info', 'options', sprintf('设置已更新：无人值守 %d 档、调度 %s（cron: %s）、webhook %s',
-		level, config.schedule_label(out) || '关闭', config.schedule_cron(out) || '-', length(webhook) ? '已配置' : '未配置'));
-	return { ok: true, config: out };
+
+	// 调度变化即同步 crontab（只动自己的标记块，块外内容不碰）
+	let sch = scheduler.sync();
+	if (!sch.ok)
+		eventlog.append('error', 'options', '同步 crontab 失败：' + (sch.error ?? '?'));
+
+	eventlog.append('info', 'options', sprintf('设置已更新：无人值守 %d 档、调度 %s（cron: %s，%s）、webhook %s',
+		level, config.schedule_label(out) || '关闭', config.schedule_cron(out) || '-',
+		sch.changed ? '已写入 crontab' : 'crontab 无变化', length(webhook) ? '已配置' : '未配置'));
+
+	return { ok: true, config: out, schedule: sch };
 }
 
 // ── 自定义源 ────────────────────────────────────────────────────────────────
@@ -283,6 +292,7 @@ return {
 		version: { call: function () { return { version: VERSION }; } },
 		status: { call: do_status },
 		sources: { call: do_sources },
+		schedule_status: { call: function () { return scheduler.status(); } },
 		check: { args: { source: '', channel: '' }, call: do_check },
 		download_status: { call: function () { return download.status(); } },
 		download: { args: { source: '', channel: '' }, call: function (req) { return download.start(arg(req, 'source'), arg(req, 'channel')); } },
