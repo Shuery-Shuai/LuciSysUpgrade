@@ -100,8 +100,16 @@ function makeContext(methods) {
 		};
 	`, ctx);
 
+	// LuCI 的 Class.extend 返回构造器；模块必须返回构造器，加载器会 new 出实例
+	const makeClass = proto => {
+		const Klass = function () { Object.assign(this, proto); };
+		Klass.extend = sub => makeClass(Object.assign({}, proto, sub));
+		return Klass;
+	};
+
 	const modules = {
-		view: { extend: o => o },
+		baseclass: { extend: makeClass },
+		view: { extend: makeClass },
 		ui: {
 			createHandlerFn: (self, name) => (...args) => self[name](...args),
 			addNotification: (title, children, ...classes) => notifications.push({ title, children, classes })
@@ -129,7 +137,13 @@ function evalModule(ctx, modules, file) {
 	}
 
 	const fn = vm.runInContext('(function (' + args.map(a => a.as).join(', ') + ') {\n' + source + '\n})', ctx, { filename: file });
-	return { value: fn(...args.map(a => a.value)), deps: deps.map(d => `${d.dep} as ${d.as}`) };
+	const yielded = fn(...args.map(a => a.value));
+
+	// 忠实复现 luci.js：Class.isSubclass(yielded) 不成立就报这条错
+	if (typeof yielded !== 'function')
+		throw new Error(`"${file}" factory yields invalid constructor`);
+
+	return { value: new yielded(), deps: deps.map(d => `${d.dep} as ${d.as}`) };
 }
 
 const fakeEv = () => ({ currentTarget: { disabled: false, classList: { add() {}, remove() {} } }, preventDefault() {} });
@@ -167,6 +181,28 @@ const VIEWS = [
 
 let failed = 0;
 let passed = 0;
+
+// 自检：确认加载器真的会拒绝「返回普通对象」的模块（这正是线上崩过的那条错）
+{
+	const { ctx, modules } = makeContext({});
+	const bad = path.join(ROOT, 'tests/fixtures/bad-module.js');
+	fs.writeFileSync(bad, "'use strict';\nreturn { hello: 1 };\n");
+	try {
+		evalModule(ctx, modules, bad);
+		console.log('FAIL 自检：普通对象模块应当被拒绝，但没有');
+		failed++;
+	} catch (e) {
+		if (String(e.message).includes('factory yields invalid constructor')) {
+			console.log('ok   自检：普通对象模块被正确拒绝');
+			passed++;
+		} else {
+			console.log('FAIL 自检：拒绝原因不符 -> ' + e.message);
+			failed++;
+		}
+	} finally {
+		fs.unlinkSync(bad);
+	}
+}
 
 for (const spec of VIEWS) {
 	for (const c of spec.cases) {

@@ -1,6 +1,9 @@
 'use strict';
+'require baseclass';
 
 // 视图公共格式化：体积、状态色、徽标、统计块、对照表。
+// 注意：LuCI 的模块必须返回一个 **Class**（加载器会用 Class.isSubclass 校验并实例化），
+// 返回普通对象字面量会直接抛 "factory yields invalid constructor"（已实测踩坑）。
 
 var TONES = {
 	same: 'success',
@@ -65,7 +68,7 @@ function kvTable(columns, rows) {
 	]);
 }
 
-return {
+return baseclass.extend({
 	TONES: TONES,
 	fmtSize: fmtSize,
 	fmtSha: fmtSha,
@@ -74,4 +77,4 @@ return {
 	stat: stat,
 	callout: callout,
 	kvTable: kvTable
-};
+});
