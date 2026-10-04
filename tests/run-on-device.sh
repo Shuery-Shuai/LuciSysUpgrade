@@ -13,7 +13,7 @@ LIBDIR="$DEST/usr/share/ucode"
 echo "== 同步到 $HOST:$DEST =="
 # COPYFILE_DISABLE: 阻止 macOS bsdtar 写入 ._* 扩展属性文件
 COPYFILE_DISABLE=1 tar --no-xattrs -C "$SRC/root" -czf - \
-	usr/share/ucode/lucisysupgrade usr/bin/lucisysupgrade usr/share/rpcd/ucode/lucisysupgrade \
+	etc usr \
 	| ssh "$HOST" "rm -rf '$DEST' && mkdir -p '$DEST' && tar -xzf - -C '$DEST' && chmod +x '$DEST/usr/bin/lucisysupgrade'"
 
 run() {
@@ -21,7 +21,7 @@ run() {
 }
 
 echo; echo "== ucode 编译检查 =="
-ssh "$HOST" "fail=0; for f in \$(find '$DEST' -type f \( -name '*.uc' -o -name 'lucisysupgrade' \)); do
+ssh "$HOST" "fail=0; for f in \$(find '$DEST/usr/share/ucode' -name '*.uc') '$DEST/usr/share/rpcd/ucode/lucisysupgrade' '$DEST/usr/bin/lucisysupgrade'; do
 	ucode -c \"\$f\" >/dev/null 2>&1 || { echo \"FAIL \$f\"; fail=1; }; done; [ \$fail -eq 0 ] && echo 'all ucode files compile'"
 
 echo; echo "== version =="; run version
