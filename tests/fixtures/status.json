@@ -1,6 +1,6 @@
 {
 	"version": "0.3.0",
-	"ts": 1791118585,
+	"ts": 1791119871,
 	"local": {
 		"hostname": "PPUC",
 		"distribution": "ImmortalWrt",
@@ -235,5 +235,9 @@
 	"download": {
 		"state": "idle",
 		"percent": 0
-	}
+	},
+	"layouts": [
+		"official",
+		"bin_targets_root"
+	]
 }

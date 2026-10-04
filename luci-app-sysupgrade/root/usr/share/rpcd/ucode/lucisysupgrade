@@ -12,6 +12,7 @@ let source = require('lucisysupgrade.source');
 let verdict = require('lucisysupgrade.verdict');
 let state = require('lucisysupgrade.state');
 let download = require('lucisysupgrade.download');
+let eventlog = require('lucisysupgrade.eventlog');
 let uci = require('uci');
 
 const VERSION = '0.3.0';
@@ -35,7 +36,8 @@ function do_status() {
 		local: local.identity(),
 		config: config.load(),
 		last: state.load_last(),
-		download: download.status()
+		download: download.status(),
+		layouts: config.LAYOUTS
 	};
 }
 
@@ -78,6 +80,9 @@ function do_check(req) {
 		interval: conf.interval
 	};
 	state.save_last(result);
+	eventlog.append(remote.ok ? 'info' : 'error', 'check',
+		sprintf('%s：%s', result.verdict.label, result.verdict.evidence || remote.error || ''),
+		{ source: src.name, remote: remote.version_code ?? '', channel: remote.channel ?? '' });
 	return result;
 }
 
@@ -102,6 +107,7 @@ function do_set_active(req) {
 
 	// 切换源之后，上一源的检测结果必须作废
 	state.clear_last();
+	eventlog.append('info', 'source', '激活源切换为 ' + name);
 	return { ok: true, active_source: name, config: config.load() };
 }
 
@@ -127,6 +133,8 @@ function do_set_options(req) {
 	}))
 		return { ok: false, error: 'uci commit 失败' };
 
+	eventlog.append('info', 'options',
+		sprintf('设置已更新：无人值守 %d 档、定时任务每 %d 小时、webhook %s', level, interval, length(webhook) ? '已配置' : '未配置'));
 	return { ok: true, config: config.load() };
 }
 
@@ -177,6 +185,7 @@ function do_source_add(req) {
 		return { ok: false, error: 'uci commit 失败' };
 
 	state.clear_last();
+	eventlog.append('info', 'source', sprintf('新增源 %s（%s，%s）', inp.name, inp.url, inp.layout));
 	let out = config.load();
 	return { ok: true, sources: out.sources, active_source: out.active_source };
 }
@@ -201,6 +210,7 @@ function do_source_set(req) {
 		return { ok: false, error: 'uci commit 失败' };
 
 	state.clear_last();
+	eventlog.append('info', 'source', sprintf('编辑源 %s（%s）', inp.name, inp.url));
 	let out = config.load();
 	return { ok: true, sources: out.sources, active_source: out.active_source };
 }
@@ -225,6 +235,7 @@ function do_source_del(req) {
 
 	out = config.load();
 	state.clear_last();
+	eventlog.append('warn', 'source', sprintf('删除源 %s（激活源现为 %s）', name, out.active_source ?? '无'));
 	return { ok: true, sources: out.sources, active_source: out.active_source };
 }
 
@@ -242,6 +253,18 @@ return {
 		set_options: { args: { unattended: '', interval: '', webhook: '' }, call: do_set_options },
 		source_add: { args: { name: '', label: '', url: '', layout: '', system: '' }, call: do_source_add },
 		source_set: { args: { name: '', label: '', url: '', layout: '', system: '' }, call: do_source_set },
-		source_del: { args: { name: '' }, call: do_source_del }
+		source_del: { args: { name: '' }, call: do_source_del },
+		// 无参数：固定返回最近 200 条事件（带参数会踩 ubus 的类型校验，且并无必要）
+		logs: {
+			call: function () {
+				return {
+					events: eventlog.tail(200),
+					download: download.status(),
+					download_log: eventlog.tail_file(download.LOG, 60, 16384),
+					files: { events: eventlog.FILE, download_log: download.LOG }
+				};
+			}
+		},
+		logs_clear: { call: function () { eventlog.clear(); return { ok: true }; } }
 	}
 };

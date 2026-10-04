@@ -402,3 +402,58 @@ msgstr "删除源"
 
 msgid "Delete source %s? Its section is removed from the configuration and the last check result is discarded."
 msgstr "删除源 %s？该段会从配置中移除，最近一次检测结果也会作废。"
+
+# 结构与日志（第二轮界面意见）
+msgid "Overview"
+msgstr "概览"
+
+msgid "Logs"
+msgstr "日志"
+
+msgid "Check sources"
+msgstr "检测源"
+
+msgid "Detection and notification"
+msgstr "检测与通知"
+
+msgid "Save settings"
+msgstr "保存设置"
+
+msgid "Detection, source and download events, newest first. Stored in RAM (/tmp), so a reboot clears them."
+msgstr "检测、源与下载事件，最新的在前。写在内存（/tmp）里，重启即清空。"
+
+msgid "Refresh"
+msgstr "刷新"
+
+msgid "Clear log"
+msgstr "清空日志"
+
+msgid "Log cleared."
+msgstr "日志已清空。"
+
+msgid "Clear failed: "
+msgstr "清空失败："
+
+msgid "Refresh failed: "
+msgstr "刷新失败："
+
+msgid "No events yet."
+msgstr "还没有事件。"
+
+msgid "No downloader output yet."
+msgstr "还没有下载器输出。"
+
+msgid "Raw downloader output (tail)"
+msgstr "下载器原始输出（尾部）"
+
+msgid "Time"
+msgstr "时间"
+
+msgid "Event"
+msgstr "事件"
+
+msgid "Detail"
+msgstr "说明"
+
+msgid "Files: %s , %s"
+msgstr "文件：%s 、%s"

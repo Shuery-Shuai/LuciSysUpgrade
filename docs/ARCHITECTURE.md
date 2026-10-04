@@ -56,6 +56,14 @@ lucisysupgrade                        │
   最后一条源不允许删除。
 - 源与运行系统不同族时（按 `system` 段与地址判族），探测结果附带**跨发行版警告**。
 
+## 事件日志
+
+- `eventlog.uc` 往 `/tmp/lucisysupgrade/events.jsonl` 追加单行 JSON：`{ts, level, event, message, data?}`。
+- `event` 目前有 `check` / `source` / `options` / `download`；`level` 为 `info|warn|error`。
+- 超过 256 KB 时丢弃前半段做轮转（从换行处切，避免半行）。
+- `logs` 方法返回最近事件 + `download.log` 尾部；`logs_clear` 清空。
+- 界面「日志」页只读展示；写日志的钩子在 rpcd 插件与 `download.uc` 里。
+
 ## 下载状态机（M2）
 
 ```
@@ -67,8 +75,9 @@ idle ──download──▶ running ──(进程组退出)──▶ verified |
 - 落盘：`/tmp/lucisysupgrade/<镜像名>`；状态：`download.json`；退出码：`download.rc`（后台命令写）。
 - **收尾不依赖守护进程**：`status()` 发现进程组已退出就做体积/sha256 校验并投递 webhook，
   再写回状态；因此重启 rpcd 也不会丢状态机。
-- **取消按进程组杀**（`kill -TERM -<pgid>`）：只杀组长会留下孤儿 curl 继续写文件（已实测踩坑）。
-- **续传保护**：只有 `ETag`/`Last-Modified` 与上次一致才允许 `-C -`，否则删掉残片重下；
+- **取消按进程组杀**（`kill -TERM -<pgid>`）：只杀组长会留下孤儿 curl 继续写文件（已实测踩坑）；
+  `cleanup`（删除文件）同样会先杀进程组，否则 curl 会把删掉的文件重新写出来。
+- **续传保护**：只有 `ETag` **与** `Last-Modified` 都与上次一致才允许 `-C -`，否则删掉残片重下；
   判定原因写进 `resume_reason`，界面上能看到为什么没续传。
 - 启动前会清扫残留下载进程，避免两个 curl 同时写同一个文件。
 

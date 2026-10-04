@@ -167,23 +167,37 @@ const VIEWS = [
 		]
 	},
 	{
-		file: 'view/sysupgrade/sources.js',
-		base: { sources: baseSources },
+		file: 'view/sysupgrade/settings.js',
+		base: { status: baseStatus },
 		extra: {
+			set_options: { ok: true },
 			set_active: { ok: true, active_source: 'immortalwrt_official', config: { sources: baseSources.sources } },
 			source_add: { ok: true, sources: baseSources.sources, active_source: 'immortalwrt_official' },
 			source_del: { ok: true, sources: baseSources.sources, active_source: 'immortalwrt_official' }
 		},
-		handlers: [ 'handleSave', 'handleAdd', { name: 'handleDelete', args: [ 'openwrt_official' ] }, { name: 'doDelete', args: [ 'openwrt_official' ] } ],
-		cases: [ { name: '源列表与自定义源', data: baseSources, expect: [ 'Sources', 'Save and apply', 'Add a source', 'Delete', 'Preset' ] } ]
+		handlers: [ 'handleSaveOptions', 'handleSaveActive', 'handleAdd', { name: 'handleDelete', args: [ 'openwrt_official' ] }, { name: 'doDelete', args: [ 'openwrt_official' ] } ],
+		cases: [
+			{
+				name: '设置（含检测源）',
+				data: { ...baseStatus, layouts: [ 'official', 'bin_targets_root' ], config: { ...baseStatus.config, sources: baseSources.sources, active_source: baseSources.active_source } },
+				expect: [ 'Settings', 'Check sources', 'Add a source', 'Save and apply', 'Save settings', 'Scheduled task', 'Delete' ]
+			}
+		]
 	},
 	{
-		file: 'view/sysupgrade/settings.js',
-		base: { status: baseStatus },
-		extra: { set_options: { ok: true } },
-		handlers: [ 'handleSave' ],
-		cases: [ { name: '设置', data: baseStatus, expect: [ 'Settings', 'Unattended level', 'Scheduled task' ] } ]
-	}
+		file: 'view/sysupgrade/logs.js',
+		base: {},
+		extra: { logs: { events: [ { ts: 1791118000, level: 'info', event: 'check', message: '远端更旧（可降级）：源码构建时间…' }, { ts: 1791118100, level: 'error', event: 'download', message: '下载失败：sha256 不匹配' } ], download_log: 'curl: (22) The requested URL returned error: 404' }, logs_clear: { ok: true } },
+		handlers: [ 'handleRefresh', 'handleClear' ],
+		cases: [
+			{
+				name: '日志（有事件）',
+				data: { events: [ { ts: 1791118000, level: 'info', event: 'check', message: '远端更旧（可降级）：源码构建时间…' }, { ts: 1791118100, level: 'error', event: 'download', message: '下载失败：sha256 不匹配' } ], download_log: 'curl: (22) 404' },
+				expect: [ 'Logs', 'Refresh', 'Clear log', 'sha256 不匹配', 'Raw downloader output' ]
+			},
+			{ name: '日志（空态）', data: null, methods: { logs: { events: [], download_log: '' } }, expect: [ 'No events yet.', 'No downloader output yet.' ] }
+		]
+	},
 ];
 
 let failed = 0;
@@ -213,7 +227,11 @@ let passed = 0;
 
 for (const spec of VIEWS) {
 	for (const c of spec.cases) {
-		const { ctx, modules, notifications, polled, modals } = makeContext({ ...spec.base, ...spec.extra, status: c.data });
+		const methods = { ...spec.base, ...spec.extra, ...(c.methods || {}) };
+		if (!c.methods || !('status' in c.methods))
+			methods.status = c.data;
+
+		const { ctx, modules, notifications, polled, modals } = makeContext(methods);
 
 		try {
 			modules['sysupgrade.format'] = evalModule(ctx, { ...modules, 'sysupgrade.format': null }, path.join(RES, 'sysupgrade/format.js')).value;

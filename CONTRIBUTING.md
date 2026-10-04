@@ -74,7 +74,9 @@
 - `tests/install-on-device.sh [ssh别名]`：装机（含 i18n 编译），`--uninstall` 卸载。
 - `tests/sources-crud.sh [ssh别名]`：真机验证自定义源的增删改与护栏（非法输入、重名、激活源自愈、
   至少保留一条源），会临时改动配置并在结束时用备份还原。
-- `tests/m2-state-machine.sh [ssh别名]`：真机验证下载状态机里**因网速太快而测不到**的分支 ——
+- `tests/m2-state-machine.sh [ssh别名]`：真机验证下载状态机的 5 条分支。**不真下载**（不受 CDN 速度影响）：
+  用 `check` 拿候选镜像的 url/size/sha256、用 HEAD 拿 etag/last-modified，再伪造「部分文件 + 状态」，
+  断言续传命中、ETag 变化拒绝续传、体积不符判失败、成功路径写完成事件、cleanup 杀进程组。原说明 ——
   续传命中/ETag 变化拒绝续传/sha256 不匹配判失败。做法是构造 `download.json` 与部分文件后调 ubus 断言。
 - macOS 打包务必带 `COPYFILE_DISABLE=1 tar --no-xattrs`，否则 `._*` 元数据文件会混进归档。
 - 逻辑改动的验收标准：在真机上跑通上述场景，且结论与预期一致（见脚本内注释）。

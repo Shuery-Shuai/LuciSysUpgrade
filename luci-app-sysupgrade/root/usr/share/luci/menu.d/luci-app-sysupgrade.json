@@ -10,7 +10,7 @@
 		}
 	},
 	"admin/system/sysupgrade/overview": {
-		"title": "Update Check",
+		"title": "Overview",
 		"order": 1,
 		"action": {
 			"type": "view",
@@ -20,23 +20,23 @@
 			"acl": [ "luci-app-sysupgrade" ]
 		}
 	},
-	"admin/system/sysupgrade/sources": {
-		"title": "Sources",
+	"admin/system/sysupgrade/settings": {
+		"title": "Settings",
 		"order": 2,
 		"action": {
 			"type": "view",
-			"path": "sysupgrade/sources"
+			"path": "sysupgrade/settings"
 		},
 		"depends": {
 			"acl": [ "luci-app-sysupgrade" ]
 		}
 	},
-	"admin/system/sysupgrade/settings": {
-		"title": "Settings",
+	"admin/system/sysupgrade/logs": {
+		"title": "Logs",
 		"order": 3,
 		"action": {
 			"type": "view",
-			"path": "sysupgrade/settings"
+			"path": "sysupgrade/logs"
 		},
 		"depends": {
 			"acl": [ "luci-app-sysupgrade" ]

@@ -11,7 +11,8 @@
 					"sources",
 					"check",
 					"version",
-					"download_status"
+					"download_status",
+					"logs"
 				]
 			}
 		},
@@ -28,7 +29,8 @@
 					"source_del",
 					"download",
 					"cancel",
-					"cleanup"
+					"cleanup",
+					"logs_clear"
 				]
 			}
 		}

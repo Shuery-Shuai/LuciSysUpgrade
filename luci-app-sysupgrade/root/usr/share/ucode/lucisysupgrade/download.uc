@@ -16,6 +16,7 @@ let local = require('lucisysupgrade.local');
 let config = require('lucisysupgrade.config');
 let source = require('lucisysupgrade.source');
 let notify = require('lucisysupgrade.notify');
+let eventlog = require('lucisysupgrade.eventlog');
 
 const DIR = '/tmp/lucisysupgrade';
 const STATE = DIR + '/download.json';
@@ -170,6 +171,10 @@ function finalize(st) {
 
 	st.finished = util.now_epoch();
 
+	eventlog.append(st.state == 'verified' ? 'info' : 'error', 'download',
+		sprintf('%s：%s', st.state == 'verified' ? '下载完成并通过校验' : '下载失败', st.sha256 ? substr(st.sha256, 0, 12) : st.error),
+		{ file: st.file, size: st.size, received: file_size(st.file) });
+
 	if (length(conf.webhook))
 		notify.post(conf.webhook, notify.payload('download_done', loc, remote, { state: st.state, error: st.error }));
 
@@ -311,6 +316,9 @@ function start(req_source, req_channel) {
 	};
 
 	save_state(st);
+	eventlog.append('info', 'download',
+		sprintf('开始下载 %s（%d 字节%s）', img.name ?? '', size, resume ? sprintf('，续传自 %d', partial) : ''));
+
 	st.percent = 0;
 	st.received = resume ? partial : 0;
 	return st;
@@ -326,12 +334,18 @@ function cancel() {
 	st.finished = util.now_epoch();
 	st.error = '';
 	save_state(st);
+	eventlog.append('warn', 'download', sprintf('下载已取消（已收 %d / %d 字节）', file_size(st.file), util.to_int(st.size, 0)));
 
 	// 保留已下载部分，便于之后续传
 	return { ok: true, state: 'cancelled', received: file_size(st.file), size: util.to_int(st.size, 0) };
 }
 
 function cleanup() {
+	// 正在下载时必须先按进程组杀掉，否则孤儿 curl 会继续写回被删掉的文件
+	let st = load_state();
+	if (st != null && st.state == 'running' && group_alive(st.pid))
+		kill_group(st.pid);
+
 	clear_state();
 	let ok = true;
 	try {
