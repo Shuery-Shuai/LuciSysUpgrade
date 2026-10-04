@@ -87,9 +87,11 @@ jobs:
                   path: artifacts
 
             - name: 生成校验和
+              # 只写文件名（不带 artifacts/<artifact名>/ 前缀）：用户从 Release 下载到的是
+              # 扁平文件，带目录的清单没法直接 shasum -c（alpha1 上踩到过）
               run: |
                   cd artifacts
-                  find . -type f -exec sha256sum {} \; | sed 's|\./||' | sort -k2 > ../SHA256SUMS
+                  find . -type f -exec sha256sum {} \; | sed 's|  \./.*/|  |' | sort -k2 > ../SHA256SUMS
                   cat ../SHA256SUMS
 
             - name: 创建 Release
@@ -108,3 +110,14 @@ jobs:
                     $extra \
                     SHA256SUMS \
                     $(find artifacts -type f -maxdepth 2)
+
+            - name: 回下载验证（清单必须能直接校验）
+              # 把刚发布的附件重新下载到扁平目录，用发布的 SHA256SUMS 校验 ——
+              # 这是对「用户拿到的东西」的端到端确认
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  mkdir -p /tmp/verify && cd /tmp/verify
+                  gh release download "${GITHUB_REF_NAME}" --dir .
+                  ls -l
+                  sha256sum -c SHA256SUMS
