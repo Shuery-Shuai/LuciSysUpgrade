@@ -1,5 +1,5 @@
 {
-	"version": "0.3.0",
+	"version": "0.1.0_alpha1",
 	"ts": 1791119871,
 	"local": {
 		"hostname": "PPUC",
@@ -50,7 +50,7 @@
 	"last": {
 		"ok": true,
 		"ts": 1791118585,
-		"version": "0.3.0",
+		"version": "0.1.0_alpha1",
 		"local": {
 			"hostname": "PPUC",
 			"distribution": "ImmortalWrt",

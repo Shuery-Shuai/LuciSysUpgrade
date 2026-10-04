@@ -16,7 +16,7 @@ let eventlog = require('lucisysupgrade.eventlog');
 let scheduler = require('lucisysupgrade.scheduler');
 let uci = require('uci');
 
-const VERSION = '0.3.0';
+const VERSION = '0.1.0_alpha1';
 const CONFIG = 'lucisysupgrade';
 
 function arg(req, name) {

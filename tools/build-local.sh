@@ -64,6 +64,8 @@ build() {
 		grep -nE "Error [0-9]|error:|No rule|not found" /tmp/build-$v.log | tail -8 | sed "s/^/    /"
 	fi
 
+	# 清掉 SDK 里上一轮累积的旧产物，避免同一个包名出现多个时间戳
+	find bin -name "*sysupgrade*" -type f -delete 2>/dev/null
 	rm -rf "/build/out-$v"; mkdir -p "/build/out-$v"
 	find bin -name "*sysupgrade*" -type f -exec cp {} "/build/out-$v/" \; 2>/dev/null
 

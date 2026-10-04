@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-sysupgrade
-PKG_VERSION:=0.2.0
+PKG_VERSION:=0.1.0_alpha1
 PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL-2.0-or-later

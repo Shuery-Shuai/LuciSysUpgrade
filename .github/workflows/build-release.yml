@@ -80,12 +80,25 @@ jobs:
         with:
           path: artifacts
 
+      - name: 生成校验和
+        run: |
+          cd artifacts
+          find . -type f -exec sha256sum {} \; | sed 's|\./||' | sort -k2 > ../SHA256SUMS
+          cat ../SHA256SUMS
+
       - name: 创建 Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # tag 含 alpha/beta/rc 时自动标为预发布（与 LuciFanXpert 的做法一致）
+          extra=""
+          case "${GITHUB_REF_NAME}" in
+            *alpha*|*beta*|*rc*) extra="--prerelease" ;;
+          esac
           find artifacts -type f -maxdepth 2 | sed 's/^/  /'
           gh release create "${GITHUB_REF_NAME}" \
             --title "${GITHUB_REF_NAME}" \
             --generate-notes \
+            $extra \
+            SHA256SUMS \
             $(find artifacts -type f -maxdepth 2)
