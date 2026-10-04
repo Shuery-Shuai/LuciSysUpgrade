@@ -286,3 +286,109 @@ msgstr "下载已取消"
 
 msgid "The partial file is kept, so a retry resumes instead of starting over (the ETag is compared first)."
 msgstr "已下载的部分会保留，重试时续传而不是重来（续传前会先比对 ETag）。"
+
+# 源管理（自定义源）与设置（定时任务）
+msgid "Add a source"
+msgstr "添加源"
+
+msgid "Any static mirror that follows the official layout works. Pick a preset or fill the fields yourself."
+msgstr "任何遵循官方目录结构的静态镜像都可以。选一个预设，或自己填。"
+
+msgid "Preset"
+msgstr "预设"
+
+msgid "— pick a preset —"
+msgstr "— 选择预设 —"
+
+msgid "Identifier"
+msgstr "标识"
+
+msgid "lower-case letters, digits, underscore; used as the UCI section name"
+msgstr "小写字母、数字、下划线；会作为 UCI 段名"
+
+msgid "Label"
+msgstr "名称"
+
+msgid "My mirror"
+msgstr "我的镜像站"
+
+msgid "optional, e.g. immortalwrt"
+msgstr "可选，例如 immortalwrt"
+
+msgid "official: <base>/{snapshots|releases/<version>}/targets/… — bin_targets_root: <base>/targets/…"
+msgstr "official：<base>/{snapshots|releases/<版本>}/targets/…；bin_targets_root：<base>/targets/…"
+
+msgid "System"
+msgstr "系统"
+
+msgid "path segment for mirrors that host several systems, e.g. rtfw/immortalwrt"
+msgstr "聚合站的系统路径段，例如 rtfw 的 immortalwrt"
+
+msgid "Add"
+msgstr "添加"
+
+msgid "Add failed"
+msgstr "添加失败"
+
+msgid "Add failed: "
+msgstr "添加失败："
+
+msgid "Delete"
+msgstr "删除"
+
+msgid "Delete failed"
+msgstr "删除失败"
+
+msgid "Delete failed: "
+msgstr "删除失败："
+
+msgid "Actions"
+msgstr "操作"
+
+msgid "Source added."
+msgstr "源已添加。"
+
+msgid "Source deleted."
+msgstr "源已删除。"
+
+msgid "ImmortalWrt official"
+msgstr "ImmortalWrt 官方"
+
+msgid "OpenWrt official"
+msgstr "OpenWrt 官方"
+
+msgid "RTFW mirror"
+msgstr "RTFW 聚合站"
+
+msgid "Own bin/targets mirror"
+msgstr "自有 bin/targets 站"
+
+msgid "Own build mirror"
+msgstr "自有构建站"
+
+msgid "Scheduled task"
+msgstr "定时任务"
+
+msgid "How often the check runs unattended. It is written into /etc/crontabs/root inside a marked block (M4); existing entries are never touched."
+msgstr "无人值守检测的频率。会写入 /etc/crontabs/root 的标记块内（M4），绝不改动你已有的条目。"
+
+msgid "Every 6 hours"
+msgstr "每 6 小时"
+
+msgid "Every 12 hours"
+msgstr "每 12 小时"
+
+msgid "Daily"
+msgstr "每天"
+
+msgid "Every 2 days"
+msgstr "每 2 天"
+
+msgid "Weekly"
+msgstr "每周"
+
+msgid "Disabled"
+msgstr "关闭"
+
+msgid "Current: every %d hours"
+msgstr "当前：每 %d 小时"

@@ -46,6 +46,16 @@ lucisysupgrade                        │
 | `rebuild` | 同版本、不同构建 | 版本号或源码时间相同但构建标识不同 |
 | `incomparable` | 无法比较 | 探测失败或缺少可比字段 |
 
+## 自定义源（M3 起）
+
+- 源 = UCI 段（`config source '<name>'`），由「源管理」页增删改。
+- 新建段必须声明类型：ucode 的 uci 模块里是 `ctx.set(CONFIG, name, 'source')`（三参形式）；
+  用四参形式写 `type` 选项会返回 null（已实测）。
+- 校验：标识 `^[a-z0-9][a-z0-9_-]{0,31}$`、地址必须 http(s)、布局白名单（`config.LAYOUTS`）。
+- 删除激活源时，回退结果会**写实**回 UCI，避免留下悬空的 `active_source`；
+  最后一条源不允许删除。
+- 源与运行系统不同族时（按 `system` 段与地址判族），探测结果附带**跨发行版警告**。
+
 ## 下载状态机（M2）
 
 ```

@@ -26,6 +26,25 @@ function url_join(segments) {
 	return url;
 }
 
+// 从源的 system 段与地址猜它属于哪个发行版族；用于提醒「跨发行版更换 ≠ 升级」
+function distro_hint(url, system) {
+	for (let probe in [ lc(system ?? ''), lc(url ?? '') ]) {
+		if (match(probe, /immortalwrt/))
+			return 'immortalwrt';
+		if (match(probe, /openwrt/))
+			return 'openwrt';
+	}
+
+	return '';
+}
+
+function distro_label(hint) {
+	if (hint == 'immortalwrt') return 'ImmortalWrt';
+	if (hint == 'openwrt') return 'OpenWrt';
+
+	return hint;
+}
+
 function target_path(local) {
 	let path = trim(local?.board_path ?? '');
 	if (length(path))
@@ -194,6 +213,11 @@ function probe(src, local, channel_override) {
 	if (out.image == null)
 		push(out.warnings, '该 profile 没有 sysupgrade 镜像');
 
+	let hint = distro_hint(src.url, src.system);
+	if (length(hint) && length(local?.distribution) && index(lc(local.distribution), hint) < 0)
+		push(out.warnings, sprintf('该源属于 %s，而本机运行 %s：跨发行版更换属于「换系统」，配置文件可能不兼容，不要当成普通升级',
+			distro_label(hint), local.distribution));
+
 	out.ok = true;
 	return out;
 }
@@ -202,6 +226,7 @@ return {
 	url_join: url_join,
 	dir_of: dir_of,
 	discover: discover,
+	distro_hint: distro_hint,
 	series_of: series_of,
 	pick_channel: pick_channel,
 	match_profile: match_profile,

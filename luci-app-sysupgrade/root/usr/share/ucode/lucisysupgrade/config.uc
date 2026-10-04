@@ -6,6 +6,7 @@
 let uci = require('uci');
 
 const CONFIG = 'lucisysupgrade';
+const LAYOUTS = [ 'official', 'bin_targets_root' ];
 
 function defaults() {
 	return {
@@ -16,8 +17,8 @@ function defaults() {
 		active_source: 'immortalwrt_official',
 		sources: [
 			{ name: 'immortalwrt_official', label: 'ImmortalWrt 官方', url: 'https://downloads.immortalwrt.org', layout: 'official', system: '' },
-			{ name: 'shuery_bpi_r4', label: 'Shuery BPI-R4 构建', url: 'https://immortalwrt.shuery.lssa.fun', layout: 'bin_targets_root', system: '' },
-			{ name: 'rtfw', label: 'RTFW 聚合站', url: 'https://rtfw.shuery.lssa.fun', layout: 'official', system: 'immortalwrt' }
+			{ name: 'openwrt_official', label: 'OpenWrt 官方', url: 'https://downloads.openwrt.org', layout: 'official', system: '' },
+			{ name: 'rtfw_immortalwrt', label: 'RTFW 聚合站（immortalwrt）', url: 'https://rtfw.shuery.lssa.fun', layout: 'official', system: 'immortalwrt' }
 		]
 	};
 }
@@ -90,6 +91,7 @@ function unattended_label(level) {
 
 return {
 	CONFIG: CONFIG,
+	LAYOUTS: LAYOUTS,
 	defaults: defaults,
 	load: load,
 	active: active,

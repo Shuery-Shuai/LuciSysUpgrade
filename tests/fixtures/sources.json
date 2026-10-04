@@ -9,15 +9,15 @@
 			"system": ""
 		},
 		{
-			"name": "shuery_bpi_r4",
-			"label": "Shuery BPI-R4 构建",
-			"url": "https://immortalwrt.shuery.lssa.fun",
-			"layout": "bin_targets_root",
+			"name": "openwrt_official",
+			"label": "OpenWrt 官方",
+			"url": "https://downloads.openwrt.org",
+			"layout": "official",
 			"system": ""
 		},
 		{
-			"name": "rtfw",
-			"label": "RTFW 聚合站",
+			"name": "rtfw_immortalwrt",
+			"label": "RTFW 聚合站（immortalwrt）",
 			"url": "https://rtfw.shuery.lssa.fun",
 			"layout": "official",
 			"system": "immortalwrt"
@@ -25,5 +25,9 @@
 	],
 	"unattended": 0,
 	"interval": 24,
-	"enabled": true
+	"enabled": true,
+	"layouts": [
+		"official",
+		"bin_targets_root"
+	]
 }

@@ -111,7 +111,7 @@ function makeContext(methods) {
 		baseclass: { extend: makeClass },
 		view: { extend: makeClass },
 		ui: {
-			createHandlerFn: (self, name) => (...args) => self[name](...args),
+			createHandlerFn: (self, name, ...bound) => (...args) => self[name](...bound, ...args),
 			addNotification: (title, children, ...classes) => notifications.push({ title, children, classes })
 		},
 		rpc: { declare: spec => () => Promise.resolve(methods[spec.method]) },
@@ -166,16 +166,20 @@ const VIEWS = [
 	{
 		file: 'view/sysupgrade/sources.js',
 		base: { sources: baseSources },
-		extra: { set_active: { ok: true } },
-		handlers: [ 'handleSave' ],
-		cases: [ { name: '源列表', data: baseSources, expect: [ 'Sources', 'Save and apply' ] } ]
+		extra: {
+			set_active: { ok: true, active_source: 'immortalwrt_official', config: { sources: baseSources.sources } },
+			source_add: { ok: true, sources: baseSources.sources, active_source: 'immortalwrt_official' },
+			source_del: { ok: true, sources: baseSources.sources, active_source: 'immortalwrt_official' }
+		},
+		handlers: [ 'handleSave', 'handleAdd', 'handleDelete' ],
+		cases: [ { name: '源列表与自定义源', data: baseSources, expect: [ 'Sources', 'Save and apply', 'Add a source', 'Delete', 'Preset' ] } ]
 	},
 	{
 		file: 'view/sysupgrade/settings.js',
 		base: { status: baseStatus },
 		extra: { set_options: { ok: true } },
 		handlers: [ 'handleSave' ],
-		cases: [ { name: '设置', data: baseStatus, expect: [ 'Settings', 'Unattended level' ] } ]
+		cases: [ { name: '设置', data: baseStatus, expect: [ 'Settings', 'Unattended level', 'Scheduled task' ] } ]
 	}
 ];
 

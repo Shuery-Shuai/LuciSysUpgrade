@@ -7,6 +7,15 @@
 var callStatus = rpc.declare({ object: 'lucisysupgrade', method: 'status' });
 var callSetOptions = rpc.declare({ object: 'lucisysupgrade', method: 'set_options', params: [ 'unattended', 'interval', 'webhook' ] });
 
+var SCHEDULE = [
+	{ hours: 0, text: _('Disabled') },
+	{ hours: 6, text: _('Every 6 hours') },
+	{ hours: 12, text: _('Every 12 hours') },
+	{ hours: 24, text: _('Daily') },
+	{ hours: 48, text: _('Every 2 days') },
+	{ hours: 168, text: _('Weekly') }
+];
+
 function sheet() {
 	return E('link', { 'rel': 'stylesheet', 'href': L.resource('sysupgrade/sysupgrade.css') });
 }
@@ -25,6 +34,7 @@ return view.extend({
 
 	render: function(status) {
 		var conf = status.config || {};
+		var self = this;
 
 		this.data = {
 			unattended: '' + (conf.unattended || 0),
@@ -32,7 +42,11 @@ return view.extend({
 			webhook: conf.webhook || ''
 		};
 
-		var self = this;
+		var hours = parseInt(this.data.interval, 10);
+		var options = SCHEDULE.slice();
+
+		if (!options.some(function(o) { return o.hours === hours; }))
+			options.unshift({ hours: hours, text: _('Current: every %d hours').format(hours) });
 
 		return E('div', {}, [
 			sheet(),
@@ -48,16 +62,14 @@ return view.extend({
 						v + ' — ' + [ _('detect and notify'), _('download automatically'), _('flash automatically') ][parseInt(v, 10)]);
 				}))),
 
-			field(_('Check interval (hours)'),
-				_('0 disables the scheduled check. The schedule is written into /etc/crontabs/root inside a marked block (M4); existing entries are never touched.'),
-				E('input', {
-					'class': 'cbi-input-text',
-					'type': 'number',
-					'min': '0',
-					'max': '168',
-					'value': self.data.interval,
-					'input': function(ev) { self.data.interval = ev.target.value; }
-				})),
+			field(_('Scheduled task'),
+				_('How often the check runs unattended. It is written into /etc/crontabs/root inside a marked block (M4); existing entries are never touched.'),
+				E('select', {
+					'class': 'cbi-input-select',
+					'change': function(ev) { self.data.interval = ev.target.value; }
+				}, options.map(function(o) {
+					return E('option', { 'value': '' + o.hours, 'selected': (o.hours === hours) ? 'selected' : null }, o.text);
+				}))),
 
 			field(_('Webhook URL'),
 				_('POST JSON on update events (M3). Leave empty to disable.'),

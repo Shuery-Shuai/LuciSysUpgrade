@@ -3,7 +3,7 @@
 
 // rpcd ubus 对象：lucisysupgrade
 // 只读：version / status / sources / check / download_status
-// 写：  set_active / set_options / download / cancel / cleanup
+// 写：  set_active / set_options / source_add / source_set / source_del / download / cancel / cleanup
 
 let util = require('lucisysupgrade.util');
 let local = require('lucisysupgrade.local');
@@ -14,7 +14,7 @@ let state = require('lucisysupgrade.state');
 let download = require('lucisysupgrade.download');
 let uci = require('uci');
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 const CONFIG = 'lucisysupgrade';
 
 function arg(req, name) {
@@ -46,7 +46,8 @@ function do_sources() {
 		sources: conf.sources,
 		unattended: conf.unattended,
 		interval: conf.interval,
-		enabled: conf.enabled
+		enabled: conf.enabled,
+		layouts: config.LAYOUTS
 	};
 }
 
@@ -80,17 +81,23 @@ function do_check(req) {
 	return result;
 }
 
+function uci_write(mutator) {
+	let ctx = uci.cursor();
+	ctx.load(CONFIG);
+	if (!mutator(ctx))
+		return false;
+
+	return ctx.commit(CONFIG);
+}
+
 function do_set_active(req) {
 	let name = arg(req, 'source');
 	let conf = config.load();
-	let hit = filter(conf.sources, function (s) { return s.name == name; });
 
-	if (!length(hit))
+	if (!length(filter(conf.sources, function (s) { return s.name == name; })))
 		return { ok: false, error: '未知的源：' + name };
 
-	let ctx = uci.cursor();
-	ctx.set(CONFIG, 'globals', 'active_source', name);
-	if (!ctx.commit(CONFIG))
+	if (!uci_write(function (ctx) { ctx.set(CONFIG, 'globals', 'active_source', name); return true; }))
 		return { ok: false, error: 'uci commit 失败' };
 
 	// 切换源之后，上一源的检测结果必须作废
@@ -112,14 +119,113 @@ function do_set_options(req) {
 	if (length(webhook) && !match(webhook, /^https?:\/\/.+/))
 		return { ok: false, error: 'webhook 必须是 http(s) 地址或留空' };
 
-	let ctx = uci.cursor();
-	ctx.set(CONFIG, 'globals', 'unattended', '' + level);
-	ctx.set(CONFIG, 'globals', 'interval', '' + interval);
-	ctx.set(CONFIG, 'globals', 'webhook', webhook);
-	if (!ctx.commit(CONFIG))
+	if (!uci_write(function (ctx) {
+		ctx.set(CONFIG, 'globals', 'unattended', '' + level);
+		ctx.set(CONFIG, 'globals', 'interval', '' + interval);
+		ctx.set(CONFIG, 'globals', 'webhook', webhook);
+		return true;
+	}))
 		return { ok: false, error: 'uci commit 失败' };
 
 	return { ok: true, config: config.load() };
+}
+
+// ── 自定义源 ────────────────────────────────────────────────────────────────
+
+function source_args(req) {
+	let a = req?.args ?? req ?? {};
+	return {
+		name: trim(a.name ?? ''),
+		label: trim(a.label ?? ''),
+		url: trim(a.url ?? ''),
+		layout: trim(a.layout ?? 'official'),
+		system: trim(a.system ?? '')
+	};
+}
+
+function validate_source(inp) {
+	if (!length(inp.name) || !match(inp.name, /^[a-z0-9][a-z0-9_-]{0,31}$/))
+		return '标识只能用小写字母、数字、下划线或连字符（以字母/数字开头，≤32 字符）';
+	if (!length(inp.label))
+		return '名称不能为空';
+	if (!match(inp.url, /^https?:\/\/[^ \t]+$/))
+		return '地址必须是 http(s) URL';
+	if (index(config.LAYOUTS, inp.layout) < 0)
+		return '未知布局：' + inp.layout + '（可选：' + join('、', config.LAYOUTS) + '）';
+
+	return '';
+}
+
+function do_source_add(req) {
+	let inp = source_args(req);
+	let conf = config.load();
+	let err = validate_source(inp);
+
+	if (length(err))
+		return { ok: false, error: err };
+	if (length(filter(conf.sources, function (s) { return s.name == inp.name; })))
+		return { ok: false, error: '标识已存在：' + inp.name };
+
+	if (!uci_write(function (ctx) {
+		ctx.set(CONFIG, inp.name, 'source');
+		ctx.set(CONFIG, inp.name, 'label', inp.label);
+		ctx.set(CONFIG, inp.name, 'url', inp.url);
+		ctx.set(CONFIG, inp.name, 'layout', inp.layout);
+		ctx.set(CONFIG, inp.name, 'system', inp.system);
+		return true;
+	}))
+		return { ok: false, error: 'uci commit 失败' };
+
+	state.clear_last();
+	let out = config.load();
+	return { ok: true, sources: out.sources, active_source: out.active_source };
+}
+
+function do_source_set(req) {
+	let inp = source_args(req);
+	let conf = config.load();
+	let err = validate_source(inp);
+
+	if (length(err))
+		return { ok: false, error: err };
+	if (!length(filter(conf.sources, function (s) { return s.name == inp.name; })))
+		return { ok: false, error: '未知的源：' + inp.name };
+
+	if (!uci_write(function (ctx) {
+		ctx.set(CONFIG, inp.name, 'label', inp.label);
+		ctx.set(CONFIG, inp.name, 'url', inp.url);
+		ctx.set(CONFIG, inp.name, 'layout', inp.layout);
+		ctx.set(CONFIG, inp.name, 'system', inp.system);
+		return true;
+	}))
+		return { ok: false, error: 'uci commit 失败' };
+
+	state.clear_last();
+	let out = config.load();
+	return { ok: true, sources: out.sources, active_source: out.active_source };
+}
+
+function do_source_del(req) {
+	let name = arg(req, 'name');
+	let conf = config.load();
+
+	if (!length(filter(conf.sources, function (s) { return s.name == name; })))
+		return { ok: false, error: '未知的源：' + name };
+	if (length(conf.sources) <= 1)
+		return { ok: false, error: '至少要保留一个源' };
+
+	if (!uci_write(function (ctx) { ctx.delete(CONFIG, name); return true; }))
+		return { ok: false, error: 'uci commit 失败' };
+
+	let out = config.load();
+
+	// 删掉的正好是激活源时，把回退结果写实，避免 UCI 里留下悬空的 active_source
+	if (out.active_source != conf.active_source)
+		uci_write(function (ctx) { ctx.set(CONFIG, 'globals', 'active_source', out.active_source); return true; });
+
+	out = config.load();
+	state.clear_last();
+	return { ok: true, sources: out.sources, active_source: out.active_source };
 }
 
 return {
@@ -133,6 +239,9 @@ return {
 		cancel: { call: function () { return download.cancel(); } },
 		cleanup: { call: function () { return download.cleanup(); } },
 		set_active: { args: { source: '' }, call: do_set_active },
-		set_options: { args: { unattended: '', interval: '', webhook: '' }, call: do_set_options }
+		set_options: { args: { unattended: '', interval: '', webhook: '' }, call: do_set_options },
+		source_add: { args: { name: '', label: '', url: '', layout: '', system: '' }, call: do_source_add },
+		source_set: { args: { name: '', label: '', url: '', layout: '', system: '' }, call: do_source_set },
+		source_del: { args: { name: '' }, call: do_source_del }
 	}
 };

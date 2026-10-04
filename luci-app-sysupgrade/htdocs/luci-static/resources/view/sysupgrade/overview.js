@@ -48,9 +48,7 @@ return view.extend({
 				E('button', {
 					'class': 'btn cbi-button cbi-button-action',
 					'click': ui.createHandlerFn(this, 'handleCheck')
-				}, _('Check for updates')),
-				E('a', { 'class': 'btn cbi-button', 'href': L.url('admin/system/sysupgrade/sources') }, _('Sources')),
-				E('a', { 'class': 'btn cbi-button', 'href': L.url('admin/system/sysupgrade/settings') }, _('Settings'))
+				}, _('Check for updates'))
 			]),
 
 			E('h3', {}, _('Local system')),

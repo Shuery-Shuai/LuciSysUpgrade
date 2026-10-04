@@ -1,6 +1,6 @@
 {
-	"version": "0.2.0",
-	"ts": 1791116747,
+	"version": "0.3.0",
+	"ts": 1791118585,
 	"local": {
 		"hostname": "PPUC",
 		"distribution": "ImmortalWrt",
@@ -32,15 +32,15 @@
 				"system": ""
 			},
 			{
-				"name": "shuery_bpi_r4",
-				"label": "Shuery BPI-R4 构建",
-				"url": "https://immortalwrt.shuery.lssa.fun",
-				"layout": "bin_targets_root",
+				"name": "openwrt_official",
+				"label": "OpenWrt 官方",
+				"url": "https://downloads.openwrt.org",
+				"layout": "official",
 				"system": ""
 			},
 			{
-				"name": "rtfw",
-				"label": "RTFW 聚合站",
+				"name": "rtfw_immortalwrt",
+				"label": "RTFW 聚合站（immortalwrt）",
 				"url": "https://rtfw.shuery.lssa.fun",
 				"layout": "official",
 				"system": "immortalwrt"
@@ -49,8 +49,8 @@
 	},
 	"last": {
 		"ok": true,
-		"ts": 1791116747,
-		"version": "0.2.0",
+		"ts": 1791118585,
+		"version": "0.3.0",
 		"local": {
 			"hostname": "PPUC",
 			"distribution": "ImmortalWrt",

@@ -39,6 +39,13 @@
 | `official` | `<base>[/<system>]/{snapshots\|releases/<ver>}/targets/<target>/<subtarget>/` | `https://downloads.immortalwrt.org` |
 | `bin_targets_root` | `<base>[/<system>]/targets/<target>/<subtarget>/` | `https://immortalwrt.shuery.lssa.fun` |
 
+内置三条默认源：**ImmortalWrt 官方**、**OpenWrt 官方**、**RTFW 聚合站（immortalwrt）**；
+在「源管理」里可以**自定义新增/删除**任意遵循官方目录结构的静态镜像（标识、名称、地址、布局、系统段），
+并可一键套用预设。同一时刻只有一条源处于激活状态。
+
+> 选到与本机不同族的源时（例如设备跑 ImmortalWrt、源是 OpenWrt 官方），探测会给出
+> **跨发行版警告**：那属于「换系统」而不是升级，配置文件可能不兼容 —— 常见的后果是刷完配置错乱。
+
 ## 安装
 
 ```sh
@@ -64,8 +71,8 @@ LuCI 界面：**系统 → 系统更新**，三个页面
 | 页面 | 作用 |
 |---|---|
 | 更新检测 | 状态徽标 + 本机/远端对照 + 判定依据 + 候选镜像；含「检查更新」按钮与全部镜像折叠列表 |
-| 源管理 | 单选激活源并保存（切换即作废上一源的结果，避免结论来源不一致） |
-| 设置 | 无人值守档位 0/1/2、检测间隔、webhook（M3/M4 生效） |
+| 源管理 | 单选激活源并保存；新增/删除自定义源（含预设）；切换即作废上一源的结果 |
+| 设置 | 无人值守档位 0/1/2、**定时任务**（关闭/每 6 小时/每 12 小时/每天/每 2 天/每周）、webhook（M3/M4 生效） |
 
 配置：`/etc/config/lucisysupgrade`（`unattended` 0/1/2，默认 0 = 仅检测并通知）。
 
