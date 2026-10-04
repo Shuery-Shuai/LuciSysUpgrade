@@ -7,12 +7,18 @@ let uci = require('uci');
 
 const CONFIG = 'lucisysupgrade';
 const LAYOUTS = [ 'official', 'bin_targets_root' ];
+const SCHEDULE_KINDS = [ 'off', 'daily', 'weekly', 'monthly' ];
+// 注意：ucode 的 substr 按字节切，中文字符 3 字节 —— 取星期必须用数组映射
+const WEEKDAY_LABELS = [ '一', '二', '三', '四', '五', '六', '日' ];
 
 function defaults() {
 	return {
 		enabled: true,
 		unattended: 0,
-		interval: 24,
+		schedule_kind: 'daily',
+		schedule_time: '04:00',
+		schedule_weekday: 1,
+		schedule_day: 1,
 		webhook: '',
 		active_source: 'immortalwrt_official',
 		sources: [
@@ -71,7 +77,10 @@ function load() {
 	return {
 		enabled: (g.enabled ?? '1') != '0',
 		unattended: int(g.unattended ?? 0),
-		interval: int(g.interval ?? 24),
+		schedule_kind: trim(g.schedule_kind ?? 'daily'),
+		schedule_time: trim(g.schedule_time ?? '04:00'),
+		schedule_weekday: int(g.schedule_weekday ?? 1),
+		schedule_day: int(g.schedule_day ?? 1),
 		webhook: trim(g.webhook ?? ''),
 		active_source: active,
 		sources: sources
@@ -84,6 +93,39 @@ function active(conf) {
 	return length(hit) ? hit[0] : null;
 }
 
+// 把调度配置翻成 5 段 cron（M4 写入 crontabs 用；也用于界面与日志里的可读说明）
+function schedule_cron(conf) {
+	let kind = trim(conf?.schedule_kind ?? 'daily');
+	if (kind == 'off')
+		return '';
+
+	let t = match(trim(conf?.schedule_time ?? '04:00'), /^([0-9]{1,2}):([0-9]{2})$/);
+	let hour = t ? t[1] : '4';
+	let min = t ? t[2] : '0';
+
+	if (kind == 'weekly')
+		return sprintf('%s %s * * %d', min, hour, int(conf?.schedule_weekday ?? 1));
+	if (kind == 'monthly')
+		return sprintf('%s %s %d * *', min, hour, int(conf?.schedule_day ?? 1));
+
+	return sprintf('%s %s * * *', min, hour);
+}
+
+function schedule_label(conf) {
+	let kind = trim(conf?.schedule_kind ?? 'daily');
+	if (kind == 'off')
+		return '关闭';
+
+	let time = trim(conf?.schedule_time ?? '04:00');
+	if (kind == 'weekly')
+		return sprintf('每周%s %s', WEEKDAY_LABELS[int(conf?.schedule_weekday ?? 1) - 1] ?? '?', time);
+
+	if (kind == 'monthly')
+		return sprintf('每月 %d 号 %s', int(conf?.schedule_day ?? 1), time);
+
+	return '每天 ' + time;
+}
+
 function unattended_label(level) {
 	let labels = [ '仅检测并通知', '检测后自动下载', '检测后自动下载并刷写' ];
 	return labels[int(level ?? 0)] ?? labels[0];
@@ -92,6 +134,9 @@ function unattended_label(level) {
 return {
 	CONFIG: CONFIG,
 	LAYOUTS: LAYOUTS,
+	SCHEDULE_KINDS: SCHEDULE_KINDS,
+	schedule_cron: schedule_cron,
+	schedule_label: schedule_label,
 	defaults: defaults,
 	load: load,
 	active: active,

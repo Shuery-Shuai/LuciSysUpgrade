@@ -364,17 +364,11 @@ msgid "Scheduled task"
 msgstr "定时任务"
 
 
-msgid "Every 6 hours"
-msgstr "每 6 小时"
 
-msgid "Every 12 hours"
-msgstr "每 12 小时"
 
 msgid "Daily"
 msgstr "每天"
 
-msgid "Every 2 days"
-msgstr "每 2 天"
 
 msgid "Weekly"
 msgstr "每周"
@@ -382,15 +376,11 @@ msgstr "每周"
 msgid "Disabled"
 msgstr "关闭"
 
-msgid "Current: every %d hours"
-msgstr "当前：每 %d 小时"
 
 # 面向用户的文案（去掉开发术语）
 msgid "0: detect and notify only. 1: also download automatically. 2: also flash automatically (not available yet)."
 msgstr "0：仅检测并通知；1：额外自动下载；2：额外自动刷写（尚未提供）。"
 
-msgid "How often the check runs unattended. It will be scheduled in /etc/crontabs/root, inside its own marked block, and never touches your existing entries. Not active yet."
-msgstr "无人值守检测的频次。启用后会写进 /etc/crontabs/root 的独立标记块，绝不改动你已有的条目；当前尚未启用。"
 
 msgid "POST JSON when update events happen. Leave empty to disable. Not active yet."
 msgstr "发生更新事件时以 POST JSON 通知，留空即关闭；当前尚未启用。"
@@ -471,3 +461,67 @@ msgstr "内部用的 UCI 段名（小写字母、数字、下划线）；一般�
 
 msgid "identifier"
 msgstr "标识"
+
+# 调度与日志筛选（第四轮界面意见）
+msgid "Runs unattended on this schedule. It will be written into /etc/crontabs/root inside its own marked block and never touches your existing entries. Not active yet."
+msgstr "按此时刻表无人值守执行。启用后会写进 /etc/crontabs/root 的独立标记块，绝不改动你已有的条目；当前尚未启用。"
+
+msgid "Monthly"
+msgstr "每月"
+
+msgid "Weekday"
+msgstr "星期"
+
+msgid "Day of month"
+msgstr "号数"
+
+msgid "1-28 only, so that every month triggers"
+msgstr "只提供 1-28，避免 29-31 号在某些月份不触发"
+
+msgid "Time (24h)"
+msgstr "时间（24 小时制）"
+
+msgid "The scheduled check is disabled."
+msgstr "定时检测已关闭。"
+
+msgid "Monday"
+msgstr "周一"
+
+msgid "Tuesday"
+msgstr "周二"
+
+msgid "Wednesday"
+msgstr "周三"
+
+msgid "Thursday"
+msgstr "周四"
+
+msgid "Friday"
+msgstr "周五"
+
+msgid "Saturday"
+msgstr "周六"
+
+msgid "Sunday"
+msgstr "周日"
+
+msgid "Level"
+msgstr "级别"
+
+msgid "All levels"
+msgstr "全部级别"
+
+msgid "All events"
+msgstr "全部事件"
+
+msgid "Search"
+msgstr "搜索"
+
+msgid "substring of the message"
+msgstr "按说明内容模糊匹配"
+
+msgid "Shown %d of %d events"
+msgstr "显示 %d / %d 条事件"
+
+msgid "No events match the filter."
+msgstr "没有符合筛选条件的事件。"

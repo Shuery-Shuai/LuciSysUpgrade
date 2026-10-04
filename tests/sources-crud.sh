@@ -1,5 +1,5 @@
 #!/bin/sh
-# 真机验证「自定义源」的增删改与护栏。会临时改动 /etc/config/lucisysupgrade，
+# 真机验证「自定义源」的增删改、护栏，以及调度设置（频率/星期/号数/时间）。会临时改动 /etc/config/lucisysupgrade，
 # 结束时用开始前的备份还原（备份留在 /tmp/lucisysupgrade.cfg.bak）。
 # 用法: tests/sources-crud.sh [ssh别名]   默认 ppuc
 set -eu
@@ -73,7 +73,19 @@ if [ "$n" -ge 1 ]; then
 	check "删除最后一个被拒" "至少要保留一个源" "$(call source_del '{"name":"immortalwrt_official"}' | tr -d '\n')"
 fi
 
-echo "== 8) 还原配置 =="
+echo "== 8) 调度设置（每日/每周/每月 + 24 小时时间）=="
+out=$(call set_options '{"unattended":"0","schedule_kind":"weekly","schedule_time":"07:05","schedule_weekday":"3","schedule_day":"1","webhook":""}' | tr -d '\n')
+check "weekly 写入成功" '"schedule_kind": "weekly"' "$out"
+check "时间写入正确" '"schedule_time": "07:05"' "$out"
+check "周几写入正确" '"schedule_weekday": 3' "$out"
+check "非法频率被拒" "调度频率必须是" "$(call set_options '{"schedule_kind":"hourly"}' | tr -d '\n')"
+check "非法时间被拒" "24 小时制" "$(call set_options '{"schedule_time":"25:00"}' | tr -d '\n')"
+check "号数越界被拒" "1-28" "$(call set_options '{"schedule_day":"31"}' | tr -d '\n')"
+check "星期越界被拒" "1-7" "$(call set_options '{"schedule_weekday":"9"}' | tr -d '\n')"
+check "可读说明进日志" "每周三 07:05" "$(run "ubus call lucisysupgrade logs | tr -d '\n'")"
+call set_options '{"unattended":"0","schedule_kind":"daily","schedule_time":"04:00","schedule_weekday":"1","schedule_day":"1","webhook":""}' >/dev/null
+
+echo "== 9) 还原配置 =="
 run "cp $BAK /etc/config/lucisysupgrade && uci -q commit lucisysupgrade && echo '  已还原'"
 out=$(run "ubus call lucisysupgrade sources | tr -d '\n'")
 check "还原后仍三条" '"rtfw_immortalwrt"' "$out"

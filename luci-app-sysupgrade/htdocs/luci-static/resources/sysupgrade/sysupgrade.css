@@ -177,8 +177,9 @@
 }
 
 .lsu-col-action {
-	width: 5.5rem;
+	width: 7rem;
 	text-align: right !important;
+	white-space: nowrap;
 }
 
 .lsu-col-time {
@@ -188,6 +189,7 @@
 
 /* 行内动作按钮：轻量描边，避免一列橙色实心块抢走注意力 */
 .lsu-rowbtn {
+	white-space: nowrap;
 	padding: 0.2rem 0.6rem;
 	font-size: 0.85rem;
 	line-height: 1.4;
@@ -213,4 +215,42 @@
 	.lsu-sources td {
 		padding: 0.35rem 0.4rem;
 	}
+}
+
+/* 应用内标题统一：Argon 把 h4 当作「面板标题」（自带内边距与主题色），
+   这里把本应用的各级标题归一化，避免出现与被主题上色的孤立标题 */
+.lsu-app h2,
+.lsu-app h3,
+.lsu-app h4 {
+	color: inherit;
+	background: transparent;
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.lsu-app h4 {
+	font-size: 1rem;
+	font-weight: 650;
+	padding-top: 0.5rem;
+	padding-bottom: 0.25rem;
+}
+
+/* 日志筛选条 */
+.lsu-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	align-items: flex-end;
+	margin: 0.5rem 0 1rem;
+}
+
+.lsu-filters .lsu-filter {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+}
+
+.lsu-filters .lsu-filter > span {
+	font-size: 0.78rem;
+	opacity: 0.75;
 }

@@ -3,8 +3,14 @@ config globals 'globals'
 	option enabled '1'
 	# 0 = 仅检测并通知, 1 = 检测后自动下载, 2 = 检测后自动下载并刷写
 	option unattended '0'
-	# 自动检测间隔（小时），0 = 关闭
-	option interval '24'
+	# 自动检测的调度：off / daily / weekly / monthly
+	option schedule_kind 'daily'
+	# 24 小时制时间
+	option schedule_time '04:00'
+	# weekly 用：1=周一 … 7=周日
+	option schedule_weekday '1'
+	# monthly 用：1-28
+	option schedule_day '1'
 	# 通用 webhook（POST JSON），留空则关闭
 	option webhook ''
 	# 同一时刻只激活一个源

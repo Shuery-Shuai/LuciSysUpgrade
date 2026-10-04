@@ -34,6 +34,8 @@
 - 已踩过的坑，别再踩：
   - 没有 `isNaN()`：用 `n != n` 判定 NaN（`int('abc')` 返回 NaN 且 `type` 是 `double`）。
   - 没有 `strftime()`：用 `gmtime()` 的字段自己格式化；注意 `mon` 是 **1 基**、日期字段是 `mday`。
+  - `substr()` **按字节**切：中文字符 3 字节，`substr('日一二三', 2, 1)` 会切出半个字（显示成 `�`）。
+    要按字符取内容就用数组映射，别切多字节字符串。
   - `require()` 不吃绝对路径，也没有 `dofile()`；模块必须放 `/usr/share/ucode/<pkg>/` 并用 dotted require；
     `-L <dir>` 只对调试/测试有意义。
   - `fs.popen(cmd, 'r')` + `fp.close()` 取退出码；命令里用 `2>/dev/null` 抑制 stderr。
@@ -60,6 +62,8 @@
 - 只通过 rpcd ubus 对象 `lucisysupgrade` 访问后端，不在前端拼命令。
 - **浏览器端没有 `sprintf`**：用 `'%s %s'.format(a, b)`（LuCI 的 `String.prototype.format`）。
   这个错误在 Node 静态检查里也能暴露 —— 先跑 `node tests/render-check.mjs`。
+- `_()` **不消费占位符**：写 `_('共 %d 条').format(n)`，不要写 `_('共 %d 条', n)`。
+  Node 桩里也必须如实保留占位符，否则断言会假失败（已踩过一次）。
 - 引用其它模块用 `'require sysupgrade.format as fmt';`：`as` 别名受支持
   （luci.js 的正则 `/^require[ \t]+(\S+)(?:[ \t]+as[ \t]+([a-zA-Z_]\S*))?$/`），
   不写 `as` 时变量名是模块路径把非字母数字换成下划线（`sysupgrade_format`）。
@@ -72,8 +76,9 @@
 - `tests/run-on-device.sh [ssh别名]`：把包内文件同步到路由器 `/tmp`，做全量 `ucode -c` 编译检查，
   并跑 `version / sources / status / check` 三条真机场景（官方源、自有构建站、rtfw）。
 - `tests/install-on-device.sh [ssh别名]`：装机（含 i18n 编译），`--uninstall` 卸载。
-- `tests/sources-crud.sh [ssh别名]`：真机验证自定义源的增删改与护栏（非法输入、重名、激活源自愈、
-  至少保留一条源），会临时改动配置并在结束时用备份还原。
+- `tests/sources-crud.sh [ssh别名]`：真机验证自定义源的增删改与护栏（非法输入、重名、标识自动派生、
+  激活源自愈、至少保留一条源）**以及调度设置**（频率/星期/号数/时间的合法与非法输入），
+  会临时改动配置并在结束时用备份还原。
 - `tests/m2-state-machine.sh [ssh别名]`：真机验证下载状态机的 5 条分支。**不真下载**（不受 CDN 速度影响）：
   用 `check` 拿候选镜像的 url/size/sha256、用 HEAD 拿 etag/last-modified，再伪造「部分文件 + 状态」，
   断言续传命中、ETag 变化拒绝续传、体积不符判失败、成功路径写完成事件、cleanup 杀进程组。原说明 ——

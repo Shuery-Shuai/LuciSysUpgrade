@@ -81,7 +81,9 @@ function makeContext(methods) {
 
 	const ctx = {
 		E: makeEl,
-		_: (s, ...args) => String(s).replace(/%[sdf]/g, () => (args.length ? args.shift() : '')),
+		// LuCI 的 _() 只做查表，**不消费占位符**：官方视图写法是 _('...%d').format(x)。
+		// 这里如实返回原串（不做翻译），占位符留给 String.prototype.format 处理。
+		_: s => String(s),
 		L: {
 			resource: p => '/luci-static/resources/' + p,
 			url: (...p) => '/cgi-bin/luci/' + p.join('/'),
@@ -180,9 +182,12 @@ const VIEWS = [
 			{
 				name: '设置（含检测源）',
 				data: { ...baseStatus, layouts: [ 'official', 'bin_targets_root' ], config: { ...baseStatus.config, sources: baseSources.sources, active_source: baseSources.active_source } },
-				expect: [ 'Settings', 'Check sources', 'Add a source', 'Save and apply', 'Save settings', 'Scheduled task', 'Delete' ],
+				expectPre: [ 'Settings', 'Check sources', 'Add source', 'Save and apply', 'Save settings', 'Scheduled task', 'Time (24h)', 'Delete' ],
+				expect: [ 'Cancel', 'Add source' ].slice(0, 1),
 				requireClass: 'lsu-table',
-				// 表格列顺序：名称 → 布局 → 地址 → 系统；标识排最后（可留空自动生成）
+				// 添加源表单默认折叠，先点开再断言字段顺序（表格列顺序：名称→布局→地址→系统）
+				after: function(view) { return view.handleToggleForm(); },
+				expectExtra: [ 'Identifier', 'Preset' ],
 				orderNodes: [
 					[ 'Active', 'Name', 'Layout', 'Address', 'System', 'Actions' ],
 					[ 'Label', 'Layout', 'Address', 'System', 'Identifier' ]
@@ -199,7 +204,7 @@ const VIEWS = [
 			{
 				name: '日志（有事件）',
 				data: { events: [ { ts: 1791118000, level: 'info', event: 'check', message: '远端更旧（可降级）：源码构建时间…' }, { ts: 1791118100, level: 'error', event: 'download', message: '下载失败：sha256 不匹配' } ], download_log: 'curl: (22) 404' },
-				expect: [ 'Logs', 'Refresh', 'Clear log', 'sha256 不匹配', 'Raw downloader output' ]
+				expect: [ 'Logs', 'Refresh', 'Clear log', 'All levels', 'All events', 'Search', 'Shown 2 of 2 events', 'sha256 不匹配', 'Raw downloader output' ]
 			},
 			{ name: '日志（空态）', data: null, methods: { logs: { events: [], download_log: '' } }, expect: [ 'No events yet.', 'No downloader output yet.' ] }
 		]
@@ -248,7 +253,19 @@ for (const spec of VIEWS) {
 
 			const data = await view.load();
 			const tree = view.render(data);
+
+			if (c.expectPre) {
+				const pre = collectText(tree).join(' ');
+				const miss = c.expectPre.filter(x => !pre.includes(x));
+				if (miss.length)
+					throw new Error('展开前缺少文案: ' + miss.join(', '));
+			}
+
+			if (c.after)
+				await c.after(view);
+
 			const text = collectText(tree).join(' ');
+			globalThis.__lastText = text;
 
 			// 表格必须带 lsu-table（固定布局 + 表头同侧对齐），否则会出现表头与内容错位
 			if (c.requireClass && !JSON.stringify(tree).includes(c.requireClass))
@@ -308,6 +325,8 @@ for (const spec of VIEWS) {
 			passed++;
 		} catch (e) {
 			console.log(`FAIL ${spec.file} · ${c.name}: ${e.message}`);
+			if (c.debug !== false)
+				console.log('     文本片段: ' + String(globalThis.__lastText || '').slice(0, 900).replace(/\s+/g, ' '));
 			failed++;
 		}
 	}

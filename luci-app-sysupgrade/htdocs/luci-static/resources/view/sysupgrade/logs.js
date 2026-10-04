@@ -35,10 +35,22 @@ return view.extend({
 	},
 
 	render: function(data) {
+		var self = this;
+
 		this.data = data || { events: [], download_log: '' };
+		this.filters = { level: '', event: '', q: '' };
 		this.logNode = E('div', {}, this.buildLog());
 
-		return E('div', {}, [
+		function pick(label, options, key, onchange) {
+			return E('label', { 'class': 'lsu-filter' }, [
+				E('span', {}, label),
+				E('select', { 'class': 'cbi-input-select', 'change': onchange }, options.map(function(o) {
+					return E('option', { 'value': o.value }, o.text);
+				}))
+			]);
+		}
+
+		return E('div', { 'class': 'lsu-app' }, [
 			sheet(),
 			E('h2', {}, _('Logs')),
 			E('p', { 'class': 'lsu-muted' },
@@ -55,16 +67,67 @@ return view.extend({
 				}, _('Clear log'))
 			]),
 
+			E('div', { 'class': 'lsu-filters' }, [
+				pick(_('Level'), [
+					{ value: '', text: _('All levels') },
+					{ value: 'info', text: 'info' },
+					{ value: 'warn', text: 'warn' },
+					{ value: 'error', text: 'error' }
+				], 'level', function(ev) { self.filters.level = ev.target.value; self.renderLog(); }),
+
+				pick(_('Event'), [
+					{ value: '', text: _('All events') },
+					{ value: 'check', text: 'check' },
+					{ value: 'source', text: 'source' },
+					{ value: 'options', text: 'options' },
+					{ value: 'download', text: 'download' }
+				], 'event', function(ev) { self.filters.event = ev.target.value; self.renderLog(); }),
+
+				E('label', { 'class': 'lsu-filter' }, [
+					E('span', {}, _('Search')),
+					E('input', {
+						'class': 'cbi-input-text',
+						'type': 'text',
+						'placeholder': _('substring of the message'),
+						'input': function(ev) { self.filters.q = ev.target.value; self.renderLog(); }
+					})
+				])
+			]),
+
 			this.logNode
 		]);
 	},
 
+	renderLog: function() {
+		replace(this.logNode, this.buildLog());
+	},
+
+	filtered: function() {
+		var f = this.filters || {};
+		var q = (f.q || '').toLowerCase();
+
+		return ((this.data && this.data.events) || []).filter(function(e) {
+			if (f.level && e.level !== f.level)
+				return false;
+			if (f.event && e.event !== f.event)
+				return false;
+			if (q && String(e.message || '').toLowerCase().indexOf(q) < 0)
+				return false;
+
+			return true;
+		});
+	},
+
 	buildLog: function() {
-		var events = (this.data && this.data.events) || [];
+		var all = (this.data && this.data.events) || [];
+		var events = this.filtered();
 		var nodes = [];
 
+		if (all.length)
+			nodes.push(E('p', { 'class': 'lsu-muted' }, _('Shown %d of %d events').format(events.length, all.length)));
+
 		if (!events.length) {
-			nodes.push(E('p', { 'class': 'lsu-muted' }, _('No events yet.')));
+			nodes.push(E('p', { 'class': 'lsu-muted' }, all.length ? _('No events match the filter.') : _('No events yet.')));
 		}
 		else {
 			nodes.push(fmt.kvTable([

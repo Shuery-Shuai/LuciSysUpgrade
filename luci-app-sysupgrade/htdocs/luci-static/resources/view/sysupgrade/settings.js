@@ -5,19 +5,22 @@
 'require sysupgrade.format as fmt';
 
 var callStatus = rpc.declare({ object: 'lucisysupgrade', method: 'status' });
-var callSetOptions = rpc.declare({ object: 'lucisysupgrade', method: 'set_options', params: [ 'unattended', 'interval', 'webhook' ] });
+var callSetOptions = rpc.declare({
+	object: 'lucisysupgrade', method: 'set_options',
+	params: [ 'unattended', 'schedule_kind', 'schedule_time', 'schedule_weekday', 'schedule_day', 'webhook' ]
+});
 var callSetActive = rpc.declare({ object: 'lucisysupgrade', method: 'set_active', params: [ 'source' ] });
 var callSourceAdd = rpc.declare({ object: 'lucisysupgrade', method: 'source_add', params: [ 'name', 'label', 'url', 'layout', 'system' ] });
 var callSourceDel = rpc.declare({ object: 'lucisysupgrade', method: 'source_del', params: [ 'name' ] });
 
-var SCHEDULE = [
-	{ hours: 0, text: _('Disabled') },
-	{ hours: 6, text: _('Every 6 hours') },
-	{ hours: 12, text: _('Every 12 hours') },
-	{ hours: 24, text: _('Daily') },
-	{ hours: 48, text: _('Every 2 days') },
-	{ hours: 168, text: _('Weekly') }
+var SCHEDULE_KINDS = [
+	{ value: 'off', text: _('Disabled') },
+	{ value: 'daily', text: _('Daily') },
+	{ value: 'weekly', text: _('Weekly') },
+	{ value: 'monthly', text: _('Monthly') }
 ];
+
+var WEEKDAYS = [ _('Monday'), _('Tuesday'), _('Wednesday'), _('Thursday'), _('Friday'), _('Saturday'), _('Sunday') ];
 
 var PRESETS = [
 	{ text: _('ImmortalWrt official'), name: 'immortalwrt_official', label: _('ImmortalWrt official'), url: 'https://downloads.immortalwrt.org', layout: 'official', system: '' },
@@ -57,36 +60,30 @@ return view.extend({
 
 		this.data = {
 			unattended: '' + (conf.unattended || 0),
-			interval: '' + (conf.interval === undefined ? 24 : conf.interval),
+			kind: conf.schedule_kind || 'daily',
+			time: conf.schedule_time || '04:00',
+			weekday: '' + (conf.schedule_weekday || 1),
+			day: '' + (conf.schedule_day || 1),
 			webhook: conf.webhook || ''
 		};
+		this.showForm = false;
 		this.sources = conf.sources || [];
 		this.active = conf.active_source || '';
 		this.layouts = status.layouts || [ 'official', 'bin_targets_root' ];
 		this.form = { name: '', label: '', url: '', layout: 'official', system: '' };
 
-		var hours = parseInt(this.data.interval, 10);
-		var schedule = SCHEDULE.slice();
-
-		if (!schedule.some(function(o) { return o.hours === hours; }))
-			schedule.unshift({ hours: hours, text: _('Current: every %d hours').format(hours) });
-
-		this.tableNode = E('div', {}, this.buildSources());
+		this.sourcesNode = E('div', {}, this.buildSources());
 		this.formNode = E('div', {}, this.buildAddForm());
+		this.scheduleNode = E('div', {}, this.buildScheduleExtra());
 
-		return E('div', {}, [
+		return E('div', { 'class': 'lsu-app' }, [
 			sheet(),
 			E('h2', {}, _('Settings')),
 
 			E('h3', {}, _('Check sources')),
 			E('p', { 'class': 'lsu-muted' },
 				_('Only one source is active at a time. Switching discards the previous check result, so that a verdict can never come from a source you are not looking at.')),
-			this.tableNode,
-
-			E('h4', {}, _('Add a source')),
-			E('p', { 'class': 'lsu-muted' },
-				_('Any static mirror that follows the official layout works. Pick a preset or fill the fields yourself.')),
-			this.formNode,
+			this.sourcesNode,
 
 			E('h3', {}, _('Detection and notification')),
 
@@ -101,13 +98,18 @@ return view.extend({
 				}))),
 
 			field(_('Scheduled task'),
-				_('How often the check runs unattended. It will be scheduled in /etc/crontabs/root, inside its own marked block, and never touches your existing entries. Not active yet.'),
+				_('Runs unattended on this schedule. It will be written into /etc/crontabs/root inside its own marked block and never touches your existing entries. Not active yet.'),
 				E('select', {
 					'class': 'cbi-input-select',
-					'change': function(ev) { self.data.interval = ev.target.value; }
-				}, schedule.map(function(o) {
-					return E('option', { 'value': '' + o.hours, 'selected': (o.hours === hours) ? 'selected' : null }, o.text);
+					'change': function(ev) {
+						self.data.kind = ev.target.value;
+						replace(self.scheduleNode, self.buildScheduleExtra());
+					}
+				}, SCHEDULE_KINDS.map(function(o) {
+					return E('option', { 'value': o.value, 'selected': (o.value === self.data.kind) ? 'selected' : null }, o.text);
 				}))),
+
+			this.scheduleNode,
 
 			field(_('Webhook URL'),
 				_('POST JSON when update events happen. Leave empty to disable. Not active yet.'),
@@ -170,8 +172,18 @@ return view.extend({
 				E('button', {
 					'class': 'btn cbi-button cbi-button-action',
 					'click': ui.createHandlerFn(this, 'handleSaveActive')
-				}, _('Save and apply'))
-			])
+				}, _('Save and apply')),
+				E('button', {
+					'class': 'btn cbi-button',
+					'click': ui.createHandlerFn(this, 'handleToggleForm')
+				}, this.showForm ? _('Cancel') : _('Add source'))
+			]),
+
+			this.showForm ? E('div', { 'class': 'lsu-addform' }, [
+				E('p', { 'class': 'lsu-muted' },
+					_('Any static mirror that follows the official layout works. Pick a preset or fill the fields yourself.')),
+				this.formNode
+			]) : ''
 		];
 	},
 
@@ -231,6 +243,45 @@ return view.extend({
 				}, _('Add'))
 			])
 		];
+	},
+
+	buildScheduleExtra: function() {
+		var self = this;
+		var d = this.data;
+		var out = [];
+
+		if (d.kind === 'off')
+			return [ E('p', { 'class': 'lsu-muted' }, _('The scheduled check is disabled.')) ];
+
+		if (d.kind === 'weekly')
+			out.push(field(_('Weekday'), E('select', {
+				'class': 'cbi-input-select',
+				'change': function(ev) { self.data.weekday = ev.target.value; }
+			}, WEEKDAYS.map(function(t, i) {
+				return E('option', { 'value': '' + (i + 1), 'selected': (('' + (i + 1)) === d.weekday) ? 'selected' : null }, t);
+			}))));
+
+		if (d.kind === 'monthly')
+			out.push(field(_('Day of month'), E('select', {
+				'class': 'cbi-input-select',
+				'change': function(ev) { self.data.day = ev.target.value; }
+			}, Array.from({ length: 28 }, function(_, i) {
+				return E('option', { 'value': '' + (i + 1), 'selected': (('' + (i + 1)) === d.day) ? 'selected' : null }, '' + (i + 1));
+			})), _('1-28 only, so that every month triggers')));
+
+		out.push(field(_('Time (24h)'), E('input', {
+			'class': 'cbi-input-text',
+			'type': 'time',
+			'value': d.time,
+			'input': function(ev) { self.data.time = ev.target.value; }
+		})));
+
+		return out;
+	},
+
+	handleToggleForm: function() {
+		this.showForm = !this.showForm;
+		replace(this.sourcesNode, this.buildSources());
 	},
 
 	refreshSources: function(res) {
@@ -306,7 +357,7 @@ return view.extend({
 	handleSaveOptions: function() {
 		var d = this.data;
 
-		return callSetOptions(d.unattended, d.interval, d.webhook).then(function(res) {
+		return callSetOptions(d.unattended, d.kind, d.time, d.weekday, d.day, d.webhook).then(function(res) {
 			if (!res || res.ok === false)
 				throw new Error((res && res.error) || _('Save failed'));
 

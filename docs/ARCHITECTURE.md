@@ -56,6 +56,15 @@ lucisysupgrade                        │
   最后一条源不允许删除。
 - 源与运行系统不同族时（按 `system` 段与地址判族），探测结果附带**跨发行版警告**。
 
+## 调度设置
+
+- UCI：`schedule_kind`（off/daily/weekly/monthly）、`schedule_time`（24 小时制 `HH:MM`）、
+  `schedule_weekday`（1=周一…7=周日）、`schedule_day`（1-28）。
+- `config.schedule_cron()` 负责翻译成 5 段 cron，M4 写 crontabs 时直接用它：
+  `daily 04:30 → 30 04 * * *`、`weekly 三 07:05 → 05 07 * * 3`、`monthly 15 23:59 → 59 23 15 * *`。
+- 号数限制 1-28：29-31 号在部分月份不会触发，这个坑对"每月检查"是致命的。
+- 校验在 `set_options` 里做（频率白名单、时间正则、星期 1-7、号数 1-28），非法即拒。
+
 ## 事件日志
 
 - `eventlog.uc` 往 `/tmp/lucisysupgrade/events.jsonl` 追加单行 JSON：`{ts, level, event, message, data?}`。
