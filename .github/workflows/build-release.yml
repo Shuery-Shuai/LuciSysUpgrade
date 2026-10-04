@@ -76,6 +76,12 @@ jobs:
         permissions:
             contents: write
         steps:
+            # gh release create --generate-notes 需要 git 仓库来读提交历史；
+            # 只下载产物会报「fatal: not a git repository」（已在 alpha1 上踩到）
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
             - uses: actions/download-artifact@v4
               with:
                   path: artifacts
