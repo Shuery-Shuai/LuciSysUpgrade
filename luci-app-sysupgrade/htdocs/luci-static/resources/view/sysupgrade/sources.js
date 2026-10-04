@@ -211,6 +211,28 @@ return view.extend({
 
 	handleDelete: function(name) {
 		var self = this;
+		var src = (this.sources || []).filter(function(x) { return x.name === name; })[0] || {};
+
+		return ui.showModal(_('Delete source'), [
+			E('p', {}, _('Delete source %s? Its section is removed from the configuration and the last check result is discarded.')
+				.format(src.label || name)),
+			E('div', { 'class': 'right' }, [
+				E('button', {
+					'class': 'btn',
+					'click': ui.hideModal
+				}, _('Cancel') + '\u00a0'),
+				E('button', {
+					'class': 'btn cbi-button cbi-button-negative',
+					'click': ui.createHandlerFn(this, 'doDelete', name)
+				}, _('Delete'))
+			])
+		]);
+	},
+
+	doDelete: function(name) {
+		var self = this;
+
+		ui.hideModal();
 
 		return callSourceDel(name).then(function(res) {
 			if (!res || res.ok === false)

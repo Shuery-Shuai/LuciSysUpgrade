@@ -187,8 +187,6 @@ msgstr "保存失败："
 msgid "Unattended level"
 msgstr "无人值守档位"
 
-msgid "0: detect and notify only. 1: also download automatically. 2: also flash automatically (not implemented yet, M3)."
-msgstr "0：仅检测并通知；1：额外自动下载；2：额外自动刷写（尚未实现，属 M3）。"
 
 msgid "detect and notify"
 msgstr "仅检测并通知"
@@ -208,8 +206,6 @@ msgstr "0 表示关闭定时检测。定时任务会写入 /etc/crontabs/root �
 msgid "Webhook URL"
 msgstr "Webhook 地址"
 
-msgid "POST JSON on update events (M3). Leave empty to disable."
-msgstr "更新事件发生时 POST JSON（M3）。留空即关闭。"
 
 msgid "Save"
 msgstr "保存"
@@ -369,8 +365,6 @@ msgstr "自有构建站"
 msgid "Scheduled task"
 msgstr "定时任务"
 
-msgid "How often the check runs unattended. It is written into /etc/crontabs/root inside a marked block (M4); existing entries are never touched."
-msgstr "无人值守检测的频率。会写入 /etc/crontabs/root 的标记块内（M4），绝不改动你已有的条目。"
 
 msgid "Every 6 hours"
 msgstr "每 6 小时"
@@ -392,3 +386,19 @@ msgstr "关闭"
 
 msgid "Current: every %d hours"
 msgstr "当前：每 %d 小时"
+
+# 面向用户的文案（去掉开发术语）
+msgid "0: detect and notify only. 1: also download automatically. 2: also flash automatically (not available yet)."
+msgstr "0：仅检测并通知；1：额外自动下载；2：额外自动刷写（尚未提供）。"
+
+msgid "How often the check runs unattended. It will be scheduled in /etc/crontabs/root, inside its own marked block, and never touches your existing entries. Not active yet."
+msgstr "无人值守检测的频次。启用后会写进 /etc/crontabs/root 的独立标记块，绝不改动你已有的条目；当前尚未启用。"
+
+msgid "POST JSON when update events happen. Leave empty to disable. Not active yet."
+msgstr "发生更新事件时以 POST JSON 通知，留空即关闭；当前尚未启用。"
+
+msgid "Delete source"
+msgstr "删除源"
+
+msgid "Delete source %s? Its section is removed from the configuration and the last check result is discarded."
+msgstr "删除源 %s？该段会从配置中移除，最近一次检测结果也会作废。"

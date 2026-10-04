@@ -53,7 +53,7 @@ return view.extend({
 			E('h2', {}, _('Settings')),
 
 			field(_('Unattended level'),
-				_('0: detect and notify only. 1: also download automatically. 2: also flash automatically (not implemented yet, M3).'),
+				_('0: detect and notify only. 1: also download automatically. 2: also flash automatically (not available yet).'),
 				E('select', {
 					'class': 'cbi-input-select',
 					'change': function(ev) { self.data.unattended = ev.target.value; }
@@ -63,7 +63,7 @@ return view.extend({
 				}))),
 
 			field(_('Scheduled task'),
-				_('How often the check runs unattended. It is written into /etc/crontabs/root inside a marked block (M4); existing entries are never touched.'),
+				_('How often the check runs unattended. It will be scheduled in /etc/crontabs/root, inside its own marked block, and never touches your existing entries. Not active yet.'),
 				E('select', {
 					'class': 'cbi-input-select',
 					'change': function(ev) { self.data.interval = ev.target.value; }
@@ -72,7 +72,7 @@ return view.extend({
 				}))),
 
 			field(_('Webhook URL'),
-				_('POST JSON on update events (M3). Leave empty to disable.'),
+				_('POST JSON when update events happen. Leave empty to disable. Not active yet.'),
 				E('input', {
 					'class': 'cbi-input-text',
 					'type': 'text',

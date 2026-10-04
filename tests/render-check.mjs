@@ -51,6 +51,7 @@ function collectText(node, out = []) {
 function makeContext(methods) {
 	const notifications = [];
 	const polled = { added: 0, removed: 0 };
+	const modals = { shown: 0, hidden: 0 };
 
 	const makeEl = (tag, attrs, children) => {
 		const el = {
@@ -112,7 +113,9 @@ function makeContext(methods) {
 		view: { extend: makeClass },
 		ui: {
 			createHandlerFn: (self, name, ...bound) => (...args) => self[name](...bound, ...args),
-			addNotification: (title, children, ...classes) => notifications.push({ title, children, classes })
+			addNotification: (title, children, ...classes) => notifications.push({ title, children, classes }),
+			showModal: (title, children) => { modals.shown++; return { title, children }; },
+			hideModal: () => { modals.hidden++; }
 		},
 		rpc: { declare: spec => () => Promise.resolve(methods[spec.method]) },
 		poll: {
@@ -122,7 +125,7 @@ function makeContext(methods) {
 		}
 	};
 
-	return { ctx, modules, notifications, polled };
+	return { ctx, modules, notifications, polled, modals };
 }
 
 function evalModule(ctx, modules, file) {
@@ -171,7 +174,7 @@ const VIEWS = [
 			source_add: { ok: true, sources: baseSources.sources, active_source: 'immortalwrt_official' },
 			source_del: { ok: true, sources: baseSources.sources, active_source: 'immortalwrt_official' }
 		},
-		handlers: [ 'handleSave', 'handleAdd', 'handleDelete' ],
+		handlers: [ 'handleSave', 'handleAdd', { name: 'handleDelete', args: [ 'openwrt_official' ] }, { name: 'doDelete', args: [ 'openwrt_official' ] } ],
 		cases: [ { name: '源列表与自定义源', data: baseSources, expect: [ 'Sources', 'Save and apply', 'Add a source', 'Delete', 'Preset' ] } ]
 	},
 	{
@@ -210,7 +213,7 @@ let passed = 0;
 
 for (const spec of VIEWS) {
 	for (const c of spec.cases) {
-		const { ctx, modules, notifications, polled } = makeContext({ ...spec.base, ...spec.extra, status: c.data });
+		const { ctx, modules, notifications, polled, modals } = makeContext({ ...spec.base, ...spec.extra, status: c.data });
 
 		try {
 			modules['sysupgrade.format'] = evalModule(ctx, { ...modules, 'sysupgrade.format': null }, path.join(RES, 'sysupgrade/format.js')).value;
@@ -227,11 +230,14 @@ for (const spec of VIEWS) {
 				throw new Error('渲染结果缺少文案: ' + missing.join(', '));
 
 			for (const handler of spec.handlers || []) {
-				if (typeof view[handler] === 'function')
-					await view[handler](fakeEv());
+				const name = (typeof handler === 'string') ? handler : handler.name;
+				const args = (typeof handler === 'string') ? [ fakeEv() ] : handler.args;
+
+				if (typeof view[name] === 'function')
+					await view[name](...args);
 			}
 
-			console.log(`ok   ${spec.file} · ${c.name}（文本 ${text.length} 字符，通知 ${notifications.length}，poll +${polled.added}/-${polled.removed}）`);
+			console.log(`ok   ${spec.file} · ${c.name}（文本 ${text.length} 字符，通知 ${notifications.length}，弹窗 +${modals.shown}/-${modals.hidden}，poll +${polled.added}/-${polled.removed}）`);
 			passed++;
 		} catch (e) {
 			console.log(`FAIL ${spec.file} · ${c.name}: ${e.message}`);
