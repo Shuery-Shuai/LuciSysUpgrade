@@ -6,7 +6,7 @@
 			"type": "firstchild"
 		},
 		"depends": {
-			"acl": [ "luci-app-sysupgrade" ]
+			"acl": ["luci-app-sysupgrade"]
 		}
 	},
 	"admin/system/sysupgrade/overview": {
@@ -17,7 +17,7 @@
 			"path": "sysupgrade/overview"
 		},
 		"depends": {
-			"acl": [ "luci-app-sysupgrade" ]
+			"acl": ["luci-app-sysupgrade"]
 		}
 	},
 	"admin/system/sysupgrade/settings": {
@@ -28,7 +28,7 @@
 			"path": "sysupgrade/settings"
 		},
 		"depends": {
-			"acl": [ "luci-app-sysupgrade" ]
+			"acl": ["luci-app-sysupgrade"]
 		}
 	},
 	"admin/system/sysupgrade/logs": {
@@ -39,7 +39,7 @@
 			"path": "sysupgrade/logs"
 		},
 		"depends": {
-			"acl": [ "luci-app-sysupgrade" ]
+			"acl": ["luci-app-sysupgrade"]
 		}
 	}
 }

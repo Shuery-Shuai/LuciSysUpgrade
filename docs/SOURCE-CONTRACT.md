@@ -5,29 +5,29 @@
 
 ## 必需文件
 
-| 路径 | 作用 | 备注 |
-|---|---|---|
+| 路径                            | 作用                             | 备注                                                  |
+| ------------------------------- | -------------------------------- | ----------------------------------------------------- |
 | `<targetdir>/version.buildinfo` | 构建标识，例 `r41386-45474b1733` | 与镜像内 `/etc/os-release` 的 `BUILD_ID` **同源同值** |
-| `<targetdir>/profiles.json` | 目标元数据 | 见下方字段 |
+| `<targetdir>/profiles.json`     | 目标元数据                       | 见下方字段                                            |
 
 ## profiles.json 用到的字段
 
-| 字段 | 语义 |
-|---|---|
-| `target` | `mediatek/filogic` |
-| `version_number` | `SNAPSHOT` 或 `25.12.2` |
-| `version_code` | `r<rev>-<sha>`（release/snapshot 都有） |
-| `source_date_epoch` | 源码时间戳，等于构建时使用的 `SOURCE_DATE_EPOCH` |
-| `profiles.<name>.supported_devices` | 本机 `board_name`（`bananapi,bpi-r4`）在此列表中 |
-| `profiles.<name>.images[]` | `type` / `filesystem` / `name` / `size` / `sha256` |
-| `profiles.<name>.file_size_limits.image` | 镜像体积上限，刷写前校验（M2） |
+| 字段                                     | 语义                                               |
+| ---------------------------------------- | -------------------------------------------------- |
+| `target`                                 | `mediatek/filogic`                                 |
+| `version_number`                         | `SNAPSHOT` 或 `25.12.2`                            |
+| `version_code`                           | `r<rev>-<sha>`（release/snapshot 都有）            |
+| `source_date_epoch`                      | 源码时间戳，等于构建时使用的 `SOURCE_DATE_EPOCH`   |
+| `profiles.<name>.supported_devices`      | 本机 `board_name`（`bananapi,bpi-r4`）在此列表中   |
+| `profiles.<name>.images[]`               | `type` / `filesystem` / `name` / `size` / `sha256` |
+| `profiles.<name>.file_size_limits.image` | 镜像体积上限，刷写前校验（M2）                     |
 
 注意：`git_commit` **只在 snapshot 的 profiles.json 里存在**（release 没有），因此不能作为判据。
 
 ## 可选文件
 
-| 路径 | 作用 |
-|---|---|
+| 路径                    | 作用                                                                                                                    |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `<base>/.versions.json` | 通道发现：`stable_version` / `oldstable_version` / `upcoming_version` / `versions_list`。缺失则退化为单通道 `snapshots` |
 
 `releases/<ver>/targets/...` 目录里的文件名带版本前缀（`immortalwrt-25.12.2-mediatek-filogic-…`），
@@ -48,10 +48,10 @@ bin_targets_root   <base>[/<system>]/targets/<target>/<subtarget>/          # bi
 
 ## 反面教材：为什么禁止用发布时间判更新（实测数据）
 
-| | 设备本机 | `rtfw…` 快照 | 官方快照 |
-|---|---|---|---|
-| `version.buildinfo` | `r0-bf156b6` | `r0-f7f75e1` | `r41386-45474b1733` |
-| 源码时间 (`source_date_epoch`) | 2026-09-29 07:18 UTC | **2026-07-06** 08:59 UTC | 2026-09-20 02:53 UTC |
+|                                  | 设备本机                | `rtfw…` 快照             | 官方快照             |
+| -------------------------------- | ----------------------- | ------------------------ | -------------------- |
+| `version.buildinfo`              | `r0-bf156b6`            | `r0-f7f75e1`             | `r41386-45474b1733`  |
+| 源码时间 (`source_date_epoch`)   | 2026-09-29 07:18 UTC    | **2026-07-06** 08:59 UTC | 2026-09-20 02:53 UTC |
 | 发布时刻（HTTP `Last-Modified`） | 构建戳 2026-10-02 04:56 | **2026-10-02** 10:24 UTC | 2026-09-20 10:30 UTC |
 
 rtfw 的快照**发布时刻最新、源码却比设备旧近三个月**。按发布时刻判定会主动推荐降级；

@@ -16,10 +16,8 @@ var TONES = {
 function fmtSize(bytes) {
 	var n = parseInt(bytes || 0, 10);
 
-	if (!n)
-		return '-';
-	if (n >= 1048576)
-		return (n / 1048576).toFixed(1) + ' MB';
+	if (!n) return '-';
+	if (n >= 1048576) return (n / 1048576).toFixed(1) + ' MB';
 
 	return (n / 1024).toFixed(1) + ' KB';
 }
@@ -33,24 +31,23 @@ function stateTone(state) {
 }
 
 function badge(state, label) {
-	return E('span', { 'class': 'lsu-badge ' + stateTone(state) }, label);
+	return E('span', { class: 'lsu-badge ' + stateTone(state) }, label);
 }
 
 function stat(label, value, sub) {
 	var items = [
-		E('div', { 'class': 'lsu-label' }, label),
-		E('div', { 'class': 'lsu-value' }, (value === undefined || value === null || value === '') ? '-' : value)
+		E('div', { class: 'lsu-label' }, label),
+		E('div', { class: 'lsu-value' }, value === undefined || value === null || value === '' ? '-' : value)
 	];
 
-	if (sub)
-		items.push(E('div', { 'class': 'lsu-sub' }, sub));
+	if (sub) items.push(E('div', { class: 'lsu-sub' }, sub));
 
-	return E('div', { 'class': 'lsu-stat' }, items);
+	return E('div', { class: 'lsu-stat' }, items);
 }
 
 function callout(tone, title, content) {
-	return E('div', { 'class': 'lsu-callout ' + (tone || '') }, [
-		title ? E('div', { 'class': 'lsu-callout-title' }, title) : '',
+	return E('div', { class: 'lsu-callout ' + (tone || '') }, [
+		title ? E('div', { class: 'lsu-callout-title' }, title) : '',
 		E('div', {}, content)
 	]);
 }
@@ -58,21 +55,37 @@ function callout(tone, title, content) {
 // columns 可传 [ '标题', { text: '标题', class: 'lsu-col-action' }, … ]
 function kvTable(columns, rows) {
 	function head(c) {
-		return (typeof c === 'string') ? { text: c, class: '' } : c;
+		return typeof c === 'string' ? { text: c, class: '' } : c;
 	}
 
-	return E('table', { 'class': 'table lsu-table' }, [
-		E('thead', {}, E('tr', {}, columns.map(function(c) {
-			var h = head(c);
-			return E('th', { 'class': h.class || '' }, h.text);
-		}))),
-		E('tbody', {}, rows.map(function(r) {
-			return E('tr', {}, r.map(function(c, i) {
-				var h = head(columns[i] || '');
-				var cls = ((h.class || '') + ((i > 0) ? ' lsu-mono' : '')).trim();
-				return E('td', { 'class': cls }, (c === '' || c === null) ? '-' : c);
-			}));
-		}))
+	return E('table', { class: 'table lsu-table' }, [
+		E(
+			'thead',
+			{},
+			E(
+				'tr',
+				{},
+				columns.map(function (c) {
+					var h = head(c);
+					return E('th', { class: h.class || '' }, h.text);
+				})
+			)
+		),
+		E(
+			'tbody',
+			{},
+			rows.map(function (r) {
+				return E(
+					'tr',
+					{},
+					r.map(function (c, i) {
+						var h = head(columns[i] || '');
+						var cls = ((h.class || '') + (i > 0 ? ' lsu-mono' : '')).trim();
+						return E('td', { class: cls }, c === '' || c === null ? '-' : c);
+					})
+				);
+			})
+		)
 	]);
 }
 

@@ -2,9 +2,7 @@
 	"luci-app-sysupgrade": {
 		"description": "Grant access to the LuCI system upgrade checker",
 		"read": {
-			"uci": [
-				"lucisysupgrade"
-			],
+			"uci": ["lucisysupgrade"],
 			"ubus": {
 				"lucisysupgrade": [
 					"status",
@@ -18,9 +16,7 @@
 			}
 		},
 		"write": {
-			"uci": [
-				"lucisysupgrade"
-			],
+			"uci": ["lucisysupgrade"],
 			"ubus": {
 				"lucisysupgrade": [
 					"set_active",

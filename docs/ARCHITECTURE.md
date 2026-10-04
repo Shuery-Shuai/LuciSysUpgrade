@@ -38,13 +38,13 @@ lucisysupgrade                        │
 
 ## 判定状态
 
-| state | 含义 | 触发条件 |
-|---|---|---|
-| `same` | 已是最新 | 两侧构建标识相同 |
-| `update` | 有可用更新 | 远端版本更高 / 远端源码更新 |
-| `downgrade` | 远端更旧（可降级） | 远端版本更低 / 远端源码更旧 |
-| `rebuild` | 同版本、不同构建 | 版本号或源码时间相同但构建标识不同 |
-| `incomparable` | 无法比较 | 探测失败或缺少可比字段 |
+| state          | 含义               | 触发条件                           |
+| -------------- | ------------------ | ---------------------------------- |
+| `same`         | 已是最新           | 两侧构建标识相同                   |
+| `update`       | 有可用更新         | 远端版本更高 / 远端源码更新        |
+| `downgrade`    | 远端更旧（可降级） | 远端版本更低 / 远端源码更旧        |
+| `rebuild`      | 同版本、不同构建   | 版本号或源码时间相同但构建标识不同 |
+| `incomparable` | 无法比较           | 探测失败或缺少可比字段             |
 
 ## 自定义源（M3 起）
 
@@ -80,11 +80,11 @@ lucisysupgrade                        │
 ## 定时任务落地（M4）
 
 - `scheduler.uc` 负责把调度写进 `/etc/crontabs/root` 的**受管标记块**：
-  ```
-  # BEGIN lucisysupgrade (managed block, do not edit)
-  0 4 * * * /usr/bin/lucisysupgrade cron >> /tmp/lucisysupgrade/cron.log 2>&1
-  # END lucisysupgrade
-  ```
+    ```
+    # BEGIN lucisysupgrade (managed block, do not edit)
+    0 4 * * * /usr/bin/lucisysupgrade cron >> /tmp/lucisysupgrade/cron.log 2>&1
+    # END lucisysupgrade
+    ```
 - 三条安全约定：**只动标记块**（块外的 nginx-util / acme 等原样保留）、写前备份到
   `<crontab>.lucisysupgrade.bak`、内容一致就不写文件也不重启 cron（幂等）。
 - 触发点：`set_options` 成功后自动同步；装机时 uci-defaults 同步一次；

@@ -12,23 +12,23 @@
 
 ## 它做什么 / 不做什么
 
-| | |
-|---|---|
-| 做 | 读取本机 `BUILD_ID` / `OPENWRT_BUILD_DATE`，探测远端 `version.buildinfo` / `profiles.json`，判定更新状态 |
-| 做 | 多源管理，但**同一时刻只激活一个源**（切换式） |
-| 做 | 按 `board_name` 在远端 `profiles.json.supported_devices` 中自动匹配 profile |
-| 做 | 下载候选镜像到 `/tmp`（`curl -C -` 续传，续传前比对 ETag/Last-Modified）、按源站 sha256 校验、可取消/清理 |
-| 不做 | 调用 `sysupgrade` 刷写（M3 暂缓） |
-| 不做 | 依赖任何非官方字段（不读 HTTP `Last-Modified`、不读文件 mtime、不解析文件名日期） |
+|      |                                                                                                           |
+| ---- | --------------------------------------------------------------------------------------------------------- |
+| 做   | 读取本机 `BUILD_ID` / `OPENWRT_BUILD_DATE`，探测远端 `version.buildinfo` / `profiles.json`，判定更新状态  |
+| 做   | 多源管理，但**同一时刻只激活一个源**（切换式）                                                            |
+| 做   | 按 `board_name` 在远端 `profiles.json.supported_devices` 中自动匹配 profile                               |
+| 做   | 下载候选镜像到 `/tmp`（`curl -C -` 续传，续传前比对 ETag/Last-Modified）、按源站 sha256 校验、可取消/清理 |
+| 不做 | 调用 `sysupgrade` 刷写（M3 暂缓）                                                                         |
+| 不做 | 依赖任何非官方字段（不读 HTTP `Last-Modified`、不读文件 mtime、不解析文件名日期）                         |
 
 ## 判据
 
-| 用途 | 本机字段 | 远端字段 |
-|---|---|---|
-| 身份（是否同一构建） | `/usr/lib/os-release` → `BUILD_ID` | `<dir>/version.buildinfo` |
-| 方向（谁更新） | `OPENWRT_BUILD_DATE`（= `SOURCE_DATE_EPOCH`） | `profiles.json` → `source_date_epoch` |
-| 方向（发行版通道） | `VERSION`（如 `25.12.2`） | `profiles.json` → `version_number` |
-| 通道发现 | — | 根 `/.versions.json`（官方格式，可选） |
+| 用途                 | 本机字段                                      | 远端字段                               |
+| -------------------- | --------------------------------------------- | -------------------------------------- |
+| 身份（是否同一构建） | `/usr/lib/os-release` → `BUILD_ID`            | `<dir>/version.buildinfo`              |
+| 方向（谁更新）       | `OPENWRT_BUILD_DATE`（= `SOURCE_DATE_EPOCH`） | `profiles.json` → `source_date_epoch`  |
+| 方向（发行版通道）   | `VERSION`（如 `25.12.2`）                     | `profiles.json` → `version_number`     |
+| 通道发现             | —                                             | 根 `/.versions.json`（官方格式，可选） |
 
 **为什么不用发布时间**：实测 `rtfw.shuery.lssa.fun` 的 immortalwrt 快照发布于 2026-10-02（最新），
 但其源码是上游 2026-07-06 的提交；而设备跑的是 2026-09-29 的源码。
@@ -36,10 +36,10 @@
 
 ## 源与布局
 
-| layout | 路径模板 | 例子 |
-|---|---|---|
-| `official` | `<base>[/<system>]/{snapshots\|releases/<ver>}/targets/<target>/<subtarget>/` | `https://downloads.immortalwrt.org` |
-| `bin_targets_root` | `<base>[/<system>]/targets/<target>/<subtarget>/` | `https://immortalwrt.shuery.lssa.fun` |
+| layout             | 路径模板                                                                      | 例子                                  |
+| ------------------ | ----------------------------------------------------------------------------- | ------------------------------------- |
+| `official`         | `<base>[/<system>]/{snapshots\|releases/<ver>}/targets/<target>/<subtarget>/` | `https://downloads.immortalwrt.org`   |
+| `bin_targets_root` | `<base>[/<system>]/targets/<target>/<subtarget>/`                             | `https://immortalwrt.shuery.lssa.fun` |
 
 内置三条默认源：**ImmortalWrt 官方**、**OpenWrt 官方**、**RTFW 聚合站（immortalwrt）**；
 在「源管理」里可以**自定义新增/删除**任意遵循官方目录结构的静态镜像（标识、名称、地址、布局、系统段），
@@ -70,11 +70,11 @@ lucisysupgrade check --source rtfw --json
 
 LuCI 界面：**系统 → 系统更新**，三个页面（与 FanXpert 的 概览/配置/日志 结构一致）
 
-| 页面 | 作用 |
-|---|---|
-| 概览 | 状态徽标 + 本机/远端对照 + 判定依据 + 候选镜像 + 镜像下载（进度/取消/续传/删除）+ 全部镜像折叠列表 |
+| 页面 | 作用                                                                                                                                  |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 概览 | 状态徽标 + 本机/远端对照 + 判定依据 + 候选镜像 + 镜像下载（进度/取消/续传/删除）+ 全部镜像折叠列表                                    |
 | 设置 | **检测源**（表格内增删、单选激活、预设）与**检测通知**（无人值守档位、**定时任务：每日／每周几／每月几号 + 24 小时制时间**、webhook） |
-| 日志 | 检测/源/设置/下载事件（最新在前），**支持按级别、事件类型与内容模糊筛选**；另有下载器原始输出尾部；可刷新与清空 |
+| 日志 | 检测/源/设置/下载事件（最新在前），**支持按级别、事件类型与内容模糊筛选**；另有下载器原始输出尾部；可刷新与清空                       |
 
 配置：`/etc/config/lucisysupgrade`（`unattended` 0/1/2，默认 0 = 仅检测并通知）。
 

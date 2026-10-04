@@ -3,102 +3,102 @@ name: Build packages
 # 双产物：25.12 SDK → .apk（ImmortalWrt/OpenWrt 25.x 用 apk），24.10 SDK → .ipk（仍用 opkg）
 # 同一份步骤先在本地用 tools/build-local.sh 跑通，才推到这里。
 on:
-  push:
-    tags: [ 'v*' ]
-  workflow_dispatch:
+    push:
+        tags: ['v*']
+    workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - sdk: '25.12.0'
-            format: apk
-            url: https://downloads.openwrt.org/releases/25.12.0/targets/x86/64/openwrt-sdk-25.12.0-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
-          - sdk: '24.10.6'
-            format: ipk
-            url: https://downloads.openwrt.org/releases/24.10.6/targets/x86/64/openwrt-sdk-24.10.6-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst
-    name: SDK ${{ matrix.sdk }} (${{ matrix.format }})
-    steps:
-      - uses: actions/checkout@v4
+    build:
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - sdk: '25.12.0'
+                      format: apk
+                      url: https://downloads.openwrt.org/releases/25.12.0/targets/x86/64/openwrt-sdk-25.12.0-x86-64_gcc-14.3.0_musl.Linux-x86_64.tar.zst
+                    - sdk: '24.10.6'
+                      format: ipk
+                      url: https://downloads.openwrt.org/releases/24.10.6/targets/x86/64/openwrt-sdk-24.10.6-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+        name: SDK ${{ matrix.sdk }} (${{ matrix.format }})
+        steps:
+            - uses: actions/checkout@v4
 
-      - name: 安装依赖
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq zstd wget gawk bzip2 gettext libncurses-dev libssl-dev zlib1g-dev python3-setuptools
-          # GitHub runner 的 Python 3.12 没有 distutils，SDK 的主机依赖检查会因此失败；
-          # 这里只跳过该检查（依赖已按上面装齐），不影响包本身是 LUCI_PKGARCH:=all 的构建
-          echo "FORCE=1" >> "$GITHUB_ENV"
+            - name: 安装依赖
+              run: |
+                  sudo apt-get update -qq
+                  sudo apt-get install -y -qq zstd wget gawk bzip2 gettext libncurses-dev libssl-dev zlib1g-dev python3-setuptools
+                  # GitHub runner 的 Python 3.12 没有 distutils，SDK 的主机依赖检查会因此失败；
+                  # 这里只跳过该检查（依赖已按上面装齐），不影响包本身是 LUCI_PKGARCH:=all 的构建
+                  echo "FORCE=1" >> "$GITHUB_ENV"
 
-      - name: 下载并解包 SDK
-        run: |
-          wget -q -O sdk.tar.zst "${{ matrix.url }}"
-          mkdir sdk
-          tar --zstd -xf sdk.tar.zst -C sdk --strip-components=1
+            - name: 下载并解包 SDK
+              run: |
+                  wget -q -O sdk.tar.zst "${{ matrix.url }}"
+                  mkdir sdk
+                  tar --zstd -xf sdk.tar.zst -C sdk --strip-components=1
 
-      - name: 放入包并准备 feeds
-        run: |
-          cd sdk
-          cp -r "$GITHUB_WORKSPACE/luci-app-sysupgrade" package/
-          # 拉全套 feeds：官方 i18n 机制（luci.mk 为 po/ 下每个语言生成
-          # luci-i18n-<app>-<lang> 包）需要 po2lmo，而 po2lmo 由 luci-base 构建，
-          # 后者依赖 liblua（packages feed）
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
-          make defconfig
+            - name: 放入包并准备 feeds
+              run: |
+                  cd sdk
+                  cp -r "$GITHUB_WORKSPACE/luci-app-sysupgrade" package/
+                  # 拉全套 feeds：官方 i18n 机制（luci.mk 为 po/ 下每个语言生成
+                  # luci-i18n-<app>-<lang> 包）需要 po2lmo，而 po2lmo 由 luci-base 构建，
+                  # 后者依赖 liblua（packages feed）
+                  ./scripts/feeds update -a
+                  ./scripts/feeds install -a
+                  make defconfig
 
-      - name: 编译
-        # 同时产出主包与 luci-i18n-sysupgrade-<lang> 语言包（官方机制）
-        run: cd sdk && make package/luci-app-sysupgrade/compile V=s
+            - name: 编译
+              # 同时产出主包与 luci-i18n-sysupgrade-<lang> 语言包（官方机制）
+              run: cd sdk && make package/luci-app-sysupgrade/compile V=s
 
-      - name: 收集并校验产物
-        run: |
-          mkdir -p out
-          find sdk/bin -name '*sysupgrade*' -type f -exec cp {} out/ \;
-          ls -l out
-          # 核对主包内容（.ipk 是 gzip 包裹的 tar，内层 data.tar.gz）
-          python3 tools/inspect-package.py out/*
-          # 语言包由 luci.mk 生成（官方机制），这里确认它确实产出了
-          ls out/ | grep -q 'luci-i18n-sysupgrade' || { echo "缺少 luci-i18n-sysupgrade 语言包"; exit 1; }
+            - name: 收集并校验产物
+              run: |
+                  mkdir -p out
+                  find sdk/bin -name '*sysupgrade*' -type f -exec cp {} out/ \;
+                  ls -l out
+                  # 核对主包内容（.ipk 是 gzip 包裹的 tar，内层 data.tar.gz）
+                  python3 tools/inspect-package.py out/*
+                  # 语言包由 luci.mk 生成（官方机制），这里确认它确实产出了
+                  ls out/ | grep -q 'luci-i18n-sysupgrade' || { echo "缺少 luci-i18n-sysupgrade 语言包"; exit 1; }
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: luci-app-sysupgrade-${{ matrix.format }}
-          path: out/*
-          if-no-files-found: error
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: luci-app-sysupgrade-${{ matrix.format }}
+                  path: out/*
+                  if-no-files-found: error
 
-  release:
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: artifacts
+    release:
+        needs: build
+        if: startsWith(github.ref, 'refs/tags/v')
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - uses: actions/download-artifact@v4
+              with:
+                  path: artifacts
 
-      - name: 生成校验和
-        run: |
-          cd artifacts
-          find . -type f -exec sha256sum {} \; | sed 's|\./||' | sort -k2 > ../SHA256SUMS
-          cat ../SHA256SUMS
+            - name: 生成校验和
+              run: |
+                  cd artifacts
+                  find . -type f -exec sha256sum {} \; | sed 's|\./||' | sort -k2 > ../SHA256SUMS
+                  cat ../SHA256SUMS
 
-      - name: 创建 Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # tag 含 alpha/beta/rc 时自动标为预发布（与 LuciFanXpert 的做法一致）
-          extra=""
-          case "${GITHUB_REF_NAME}" in
-            *alpha*|*beta*|*rc*) extra="--prerelease" ;;
-          esac
-          find artifacts -type f -maxdepth 2 | sed 's/^/  /'
-          gh release create "${GITHUB_REF_NAME}" \
-            --title "${GITHUB_REF_NAME}" \
-            --generate-notes \
-            $extra \
-            SHA256SUMS \
-            $(find artifacts -type f -maxdepth 2)
+            - name: 创建 Release
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  # tag 含 alpha/beta/rc 时自动标为预发布（与 LuciFanXpert 的做法一致）
+                  extra=""
+                  case "${GITHUB_REF_NAME}" in
+                    *alpha*|*beta*|*rc*) extra="--prerelease" ;;
+                  esac
+                  find artifacts -type f -maxdepth 2 | sed 's/^/  /'
+                  gh release create "${GITHUB_REF_NAME}" \
+                    --title "${GITHUB_REF_NAME}" \
+                    --generate-notes \
+                    $extra \
+                    SHA256SUMS \
+                    $(find artifacts -type f -maxdepth 2)

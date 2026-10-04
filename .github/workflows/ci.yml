@@ -1,64 +1,64 @@
 name: CI
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
+    push:
+        branches: [main]
+    pull_request:
 
 jobs:
-  static:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    static:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
 
-      - name: JSON 校验
-        run: |
-          fail=0
-          for f in $(find . -name '*.json' -not -path './.git/*'); do
-            python3 -m json.tool "$f" > /dev/null || { echo "FAIL $f"; fail=1; }
-          done
-          exit $fail
+            - name: JSON 校验
+              run: |
+                  fail=0
+                  for f in $(find . -name '*.json' -not -path './.git/*'); do
+                    python3 -m json.tool "$f" > /dev/null || { echo "FAIL $f"; fail=1; }
+                  done
+                  exit $fail
 
-      - name: JS 语法
-        run: |
-          fail=0
-          for f in $(find . -name '*.js' -not -path './.git/*'); do
-            node --check "$f" || { echo "FAIL $f"; fail=1; }
-          done
-          exit $fail
+            - name: JS 语法
+              run: |
+                  fail=0
+                  for f in $(find . -name '*.js' -not -path './.git/*'); do
+                    node --check "$f" || { echo "FAIL $f"; fail=1; }
+                  done
+                  exit $fail
 
-      # 首次推送前未能在本机跑通 prettier（npm registry 不可达），
-      # 因此先设为非阻塞；本地执行 `npx prettier@3 --write "**/*.{js,json,yml,md}"` 后改为阻塞。
-      - name: i18n 检查（msgid 与 po 一致性）
-        run: node tests/i18n-check.mjs
+            # 首次推送前未能在本机跑通 prettier（npm registry 不可达），
+            # 因此先设为非阻塞；本地执行 `npx prettier@3 --write "**/*.{js,json,yml,md}"` 后改为阻塞。
+            - name: i18n 检查（msgid 与 po 一致性）
+              run: node tests/i18n-check.mjs
 
-      - name: 视图渲染检查（Node 桩，无浏览器）
-        run: node tests/render-check.mjs
+            - name: 视图渲染检查（Node 桩，无浏览器）
+              run: node tests/render-check.mjs
 
-      - name: prettier
-        continue-on-error: true
-        run: npx --yes prettier@3 --check "**/*.{js,json,yml,md}"
+            - name: prettier
+              continue-on-error: true
+              run: npx --yes prettier@3 --check "**/*.{js,json,yml,md}"
 
-      - name: shellcheck
-        run: shellcheck tests/*.sh
+            - name: shellcheck
+              run: shellcheck tests/*.sh
 
-  ucode-syntax:
-    runs-on: ubuntu-latest
-    steps:
-      # 注意：不能把 checkout 放进 openwrt/rootfs 容器里 —— 它是 musl 系统，
-      # 而 actions/checkout 的 Node 二进制依赖 glibc，会以
-      # 「exec /__e/node24/bin/node: no such file or directory」失败。
-      # 因此：宿主机 checkout，再用 docker run 进容器做 ucode 检查。
-      - uses: actions/checkout@v4
+    ucode-syntax:
+        runs-on: ubuntu-latest
+        steps:
+            # 注意：不能把 checkout 放进 openwrt/rootfs 容器里 —— 它是 musl 系统，
+            # 而 actions/checkout 的 Node 二进制依赖 glibc，会以
+            # 「exec /__e/node24/bin/node: no such file or directory」失败。
+            # 因此：宿主机 checkout，再用 docker run 进容器做 ucode 检查。
+            - uses: actions/checkout@v4
 
-      - name: ucode 编译检查（openwrt/rootfs 容器）
-        run: |
-          docker run --rm -v "$PWD:/src:ro" openwrt/rootfs:x86_64-25.12-SNAPSHOT sh -c '
-            apk update >/dev/null 2>&1 && apk add --no-cache ucode >/dev/null 2>&1
-            fail=0
-            for f in $(find /src/luci-app-sysupgrade -type f \( -name "*.uc" -o -name lucisysupgrade \)); do
-              ucode -c "$f" > /dev/null || { echo "FAIL $f"; fail=1; }
-            done
-            echo "检查了 $(find /src/luci-app-sysupgrade -type f \( -name "*.uc" -o -name lucisysupgrade \) | wc -l) 个文件"
-            exit $fail
-          '
+            - name: ucode 编译检查（openwrt/rootfs 容器）
+              run: |
+                  docker run --rm -v "$PWD:/src:ro" openwrt/rootfs:x86_64-25.12-SNAPSHOT sh -c '
+                    apk update >/dev/null 2>&1 && apk add --no-cache ucode >/dev/null 2>&1
+                    fail=0
+                    for f in $(find /src/luci-app-sysupgrade -type f \( -name "*.uc" -o -name lucisysupgrade \)); do
+                      ucode -c "$f" > /dev/null || { echo "FAIL $f"; fail=1; }
+                    done
+                    echo "检查了 $(find /src/luci-app-sysupgrade -type f \( -name "*.uc" -o -name lucisysupgrade \) | wc -l) 个文件"
+                    exit $fail
+                  '

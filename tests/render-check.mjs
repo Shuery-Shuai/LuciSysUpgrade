@@ -28,19 +28,15 @@ function parseDirectives(source) {
 	let m;
 	while ((m = re.exec(source)) !== null) {
 		const d = REQUIRE_RE.exec(m[2]);
-		if (d)
-			deps.push({ dep: d[1], as: d[2] || d[1].replace(/[^a-zA-Z0-9_]/g, '_') });
+		if (d) deps.push({ dep: d[1], as: d[2] || d[1].replace(/[^a-zA-Z0-9_]/g, '_') });
 	}
 	return deps;
 }
 
 function collectText(node, out = []) {
-	if (node === null || node === undefined)
-		return out;
-	if (typeof node === 'string' || typeof node === 'number')
-		out.push(String(node));
-	else if (Array.isArray(node))
-		node.forEach(n => collectText(n, out));
+	if (node === null || node === undefined) return out;
+	if (typeof node === 'string' || typeof node === 'number') out.push(String(node));
+	else if (Array.isArray(node)) node.forEach(n => collectText(n, out));
 	else if (typeof node === 'object') {
 		Object.values(node.attrs || {}).forEach(v => collectText(v, out));
 		collectText(node.children, out);
@@ -58,20 +54,18 @@ function makeContext(methods) {
 			tag,
 			attrs: attrs || {},
 			children: [],
-			get firstChild() { return this.children[0] || null; },
+			get firstChild() {
+				return this.children[0] || null;
+			},
 			appendChild(child) {
-				if (child === null || child === undefined || child === '')
-					return child;
-				if (Array.isArray(child))
-					child.forEach(c => this.appendChild(c));
-				else
-					this.children.push(child);
+				if (child === null || child === undefined || child === '') return child;
+				if (Array.isArray(child)) child.forEach(c => this.appendChild(c));
+				else this.children.push(child);
 				return child;
 			},
 			removeChild(child) {
 				const i = this.children.indexOf(child);
-				if (i >= 0)
-					this.children.splice(i, 1);
+				if (i >= 0) this.children.splice(i, 1);
 				return child;
 			}
 		};
@@ -90,22 +84,33 @@ function makeContext(methods) {
 			bind: (fn, self, ...args) => fn.bind(self, ...args),
 			env: {}
 		},
-		Date, JSON, Math, Object, Array, Promise, console
+		Date,
+		JSON,
+		Math,
+		Object,
+		Array,
+		Promise,
+		console
 	};
 
 	ctx.globalThis = ctx;
 	vm.createContext(ctx);
 
-	vm.runInContext(`
+	vm.runInContext(
+		`
 		String.prototype.format = function () {
 			const args = Array.from(arguments);
 			return this.replace(/%[sdf]/g, m => (args.length ? String(args.shift()) : m));
 		};
-	`, ctx);
+	`,
+		ctx
+	);
 
 	// LuCI 的 Class.extend 返回构造器；模块必须返回构造器，加载器会 new 出实例
 	const makeClass = proto => {
-		const Klass = function () { Object.assign(this, proto); };
+		const Klass = function () {
+			Object.assign(this, proto);
+		};
 		Klass.extend = sub => makeClass(Object.assign({}, proto, sub));
 		return Klass;
 	};
@@ -114,16 +119,31 @@ function makeContext(methods) {
 		baseclass: { extend: makeClass },
 		view: { extend: makeClass },
 		ui: {
-			createHandlerFn: (self, name, ...bound) => (...args) => self[name](...bound, ...args),
+			createHandlerFn:
+				(self, name, ...bound) =>
+				(...args) =>
+					self[name](...bound, ...args),
 			addNotification: (title, children, ...classes) => notifications.push({ title, children, classes }),
-			showModal: (title, children) => { modals.shown++; return { title, children }; },
-			hideModal: () => { modals.hidden++; }
+			showModal: (title, children) => {
+				modals.shown++;
+				return { title, children };
+			},
+			hideModal: () => {
+				modals.hidden++;
+			}
 		},
 		rpc: { declare: spec => () => Promise.resolve(methods[spec.method]) },
 		poll: {
-			add: () => { polled.added++; },
-			remove: () => { polled.removed++; },
-			active: () => false, call: () => {}, start: () => {}, stop: () => {}
+			add: () => {
+				polled.added++;
+			},
+			remove: () => {
+				polled.removed++;
+			},
+			active: () => false,
+			call: () => {},
+			start: () => {},
+			stop: () => {}
 		}
 	};
 
@@ -136,36 +156,64 @@ function evalModule(ctx, modules, file) {
 	const args = [];
 
 	for (const d of deps) {
-		if (!(d.dep in modules))
-			throw new Error(`模块 ${d.dep} 没有桩（视图要求了它）`);
+		if (!(d.dep in modules)) throw new Error(`模块 ${d.dep} 没有桩（视图要求了它）`);
 		args.push({ as: d.as, value: modules[d.dep] });
 	}
 
-	const fn = vm.runInContext('(function (' + args.map(a => a.as).join(', ') + ') {\n' + source + '\n})', ctx, { filename: file });
+	const fn = vm.runInContext('(function (' + args.map(a => a.as).join(', ') + ') {\n' + source + '\n})', ctx, {
+		filename: file
+	});
 	const yielded = fn(...args.map(a => a.value));
 
 	// 忠实复现 luci.js：Class.isSubclass(yielded) 不成立就报这条错
-	if (typeof yielded !== 'function')
-		throw new Error(`"${file}" factory yields invalid constructor`);
+	if (typeof yielded !== 'function') throw new Error(`"${file}" factory yields invalid constructor`);
 
 	return { value: new yielded(), deps: deps.map(d => `${d.dep} as ${d.as}`) };
 }
 
-const fakeEv = () => ({ currentTarget: { disabled: false, classList: { add() {}, remove() {} } }, preventDefault() {} });
+const fakeEv = () => ({
+	currentTarget: { disabled: false, classList: { add() {}, remove() {} } },
+	preventDefault() {}
+});
 const FILE = '/tmp/lucisysupgrade/immortalwrt-mediatek-filogic-bananapi_bpi-r4-squashfs-sysupgrade.itb';
 
 const VIEWS = [
 	{
 		file: 'view/sysupgrade/overview.js',
 		base: { status: baseStatus },
-		extra: { download: { ok: true, state: 'running', received: 1024, size: 2048, percent: 50 }, download_status: { state: 'cancelled' }, cancel: { ok: true }, cleanup: { ok: true }, check: baseStatus.last },
-		handlers: [ 'handleCheck', 'handleDownload', 'handleCancel', 'handleCleanup' ],
+		extra: {
+			download: { ok: true, state: 'running', received: 1024, size: 2048, percent: 50 },
+			download_status: { state: 'cancelled' },
+			cancel: { ok: true },
+			cleanup: { ok: true },
+			check: baseStatus.last
+		},
+		handlers: ['handleCheck', 'handleDownload', 'handleCancel', 'handleCleanup'],
 		cases: [
-			{ name: '无下载', data: baseStatus, expect: [ 'Download image' ] },
-			{ name: '下载中', data: { ...baseStatus, download: { state: 'running', received: 5160906, size: 23593558, percent: 21 } }, expect: [ 'Cancel', 'Downloading', '21%' ] },
-			{ name: '已校验', data: { ...baseStatus, download: { state: 'verified', file: FILE, size: 23593558, sha256: 'a'.repeat(64) } }, expect: [ 'Downloaded and verified', 'Delete file' ] },
-			{ name: '失败', data: { ...baseStatus, download: { state: 'failed', error: 'curl exit 22' } }, expect: [ 'Download failed', 'Retry download', 'curl exit 22' ] },
-			{ name: '已取消', data: { ...baseStatus, download: { state: 'cancelled' } }, expect: [ 'Resume download', 'Download cancelled' ] }
+			{ name: '无下载', data: baseStatus, expect: ['Download image'] },
+			{
+				name: '下载中',
+				data: { ...baseStatus, download: { state: 'running', received: 5160906, size: 23593558, percent: 21 } },
+				expect: ['Cancel', 'Downloading', '21%']
+			},
+			{
+				name: '已校验',
+				data: {
+					...baseStatus,
+					download: { state: 'verified', file: FILE, size: 23593558, sha256: 'a'.repeat(64) }
+				},
+				expect: ['Downloaded and verified', 'Delete file']
+			},
+			{
+				name: '失败',
+				data: { ...baseStatus, download: { state: 'failed', error: 'curl exit 22' } },
+				expect: ['Download failed', 'Retry download', 'curl exit 22']
+			},
+			{
+				name: '已取消',
+				data: { ...baseStatus, download: { state: 'cancelled' } },
+				expect: ['Resume download', 'Download cancelled']
+			}
 		]
 	},
 	{
@@ -177,18 +225,39 @@ const VIEWS = [
 			source_add: { ok: true, sources: baseSources.sources, active_source: 'immortalwrt_official' },
 			source_del: { ok: true, sources: baseSources.sources, active_source: 'immortalwrt_official' }
 		},
-		handlers: [ 'handleSaveOptions', 'handleSaveActive', { name: 'handleDelete', args: [ 'openwrt_official' ] }, { name: 'doDelete', args: [ 'openwrt_official' ] }, 'handleAdvancedAdd' ],
+		handlers: [
+			'handleSaveOptions',
+			'handleSaveActive',
+			{ name: 'handleDelete', args: ['openwrt_official'] },
+			{ name: 'doDelete', args: ['openwrt_official'] },
+			'handleAdvancedAdd'
+		],
 		cases: [
 			{
 				name: '设置（快速添加 + 高级对话框）',
-				data: { ...baseStatus, layouts: [ 'official', 'bin_targets_root' ], config: { ...baseStatus.config, sources: baseSources.sources, active_source: baseSources.active_source } },
+				data: {
+					...baseStatus,
+					layouts: ['official', 'bin_targets_root'],
+					config: {
+						...baseStatus.config,
+						sources: baseSources.sources,
+						active_source: baseSources.active_source
+					}
+				},
 				expectPre: [
-					'Settings', 'Check sources', 'Save and apply', 'Save settings', 'Scheduled task',
-					'Time (24h)', 'Delete', 'Preset', 'Advanced'
+					'Settings',
+					'Check sources',
+					'Save and apply',
+					'Save settings',
+					'Scheduled task',
+					'Time (24h)',
+					'Delete',
+					'Preset',
+					'Advanced'
 				],
 				requireClass: 'lsu-table',
-				expect: [ 'Identifier', 'auto-generated when empty', 'internal UCI section name' ],
-				after: async function(view) {
+				expect: ['Identifier', 'auto-generated when empty', 'internal UCI section name'],
+				after: async function (view) {
 					// 快速添加：缺必填 → 警告；填好 → 成功
 					await view.handleQuickAdd();
 					view.rowEls.label.value = '测试源';
@@ -199,8 +268,8 @@ const VIEWS = [
 					return view.advNode;
 				},
 				orderSequences: [
-					[ 'Active', 'Name', 'Layout', 'Address', 'System', 'Actions' ],
-					[ 'Preset', 'Source label', 'Layout', 'Address', 'System', 'Actions' ]
+					['Active', 'Name', 'Layout', 'Address', 'System', 'Actions'],
+					['Preset', 'Source label', 'Layout', 'Address', 'System', 'Actions']
 				]
 			}
 		]
@@ -208,17 +277,47 @@ const VIEWS = [
 	{
 		file: 'view/sysupgrade/logs.js',
 		base: {},
-		extra: { logs: { events: [ { ts: 1791118000, level: 'info', event: 'check', message: '远端更旧（可降级）：源码构建时间…' }, { ts: 1791118100, level: 'error', event: 'download', message: '下载失败：sha256 不匹配' } ], download_log: 'curl: (22) The requested URL returned error: 404' }, logs_clear: { ok: true } },
-		handlers: [ 'handleRefresh', 'handleClear' ],
+		extra: {
+			logs: {
+				events: [
+					{ ts: 1791118000, level: 'info', event: 'check', message: '远端更旧（可降级）：源码构建时间…' },
+					{ ts: 1791118100, level: 'error', event: 'download', message: '下载失败：sha256 不匹配' }
+				],
+				download_log: 'curl: (22) The requested URL returned error: 404'
+			},
+			logs_clear: { ok: true }
+		},
+		handlers: ['handleRefresh', 'handleClear'],
 		cases: [
 			{
 				name: '日志（有事件）',
-				data: { events: [ { ts: 1791118000, level: 'info', event: 'check', message: '远端更旧（可降级）：源码构建时间…' }, { ts: 1791118100, level: 'error', event: 'download', message: '下载失败：sha256 不匹配' } ], download_log: 'curl: (22) 404' },
-				expect: [ 'Logs', 'Refresh', 'Clear log', 'All levels', 'All events', 'Search', 'Shown 2 of 2 events', 'sha256 不匹配', 'Raw downloader output' ]
+				data: {
+					events: [
+						{ ts: 1791118000, level: 'info', event: 'check', message: '远端更旧（可降级）：源码构建时间…' },
+						{ ts: 1791118100, level: 'error', event: 'download', message: '下载失败：sha256 不匹配' }
+					],
+					download_log: 'curl: (22) 404'
+				},
+				expect: [
+					'Logs',
+					'Refresh',
+					'Clear log',
+					'All levels',
+					'All events',
+					'Search',
+					'Shown 2 of 2 events',
+					'sha256 不匹配',
+					'Raw downloader output'
+				]
 			},
-			{ name: '日志（空态）', data: null, methods: { logs: { events: [], download_log: '' } }, expect: [ 'No events yet.', 'No downloader output yet.' ] }
+			{
+				name: '日志（空态）',
+				data: null,
+				methods: { logs: { events: [], download_log: '' } },
+				expect: ['No events yet.', 'No downloader output yet.']
+			}
 		]
-	},
+	}
 ];
 
 let failed = 0;
@@ -249,13 +348,16 @@ let passed = 0;
 for (const spec of VIEWS) {
 	for (const c of spec.cases) {
 		const methods = { ...spec.base, ...spec.extra, ...(c.methods || {}) };
-		if (!c.methods || !('status' in c.methods))
-			methods.status = c.data;
+		if (!c.methods || !('status' in c.methods)) methods.status = c.data;
 
 		const { ctx, modules, notifications, polled, modals } = makeContext(methods);
 
 		try {
-			modules['sysupgrade.format'] = evalModule(ctx, { ...modules, 'sysupgrade.format': null }, path.join(RES, 'sysupgrade/format.js')).value;
+			modules['sysupgrade.format'] = evalModule(
+				ctx,
+				{ ...modules, 'sysupgrade.format': null },
+				path.join(RES, 'sysupgrade/format.js')
+			).value;
 
 			const { value: view } = evalModule(ctx, modules, path.join(RES, spec.file));
 			if (typeof view.load !== 'function' || typeof view.render !== 'function')
@@ -267,14 +369,12 @@ for (const spec of VIEWS) {
 			if (c.expectPre) {
 				const pre = collectText(tree).join(' ');
 				const miss = c.expectPre.filter(x => !pre.includes(x));
-				if (miss.length)
-					throw new Error('展开前缺少文案: ' + miss.join(', '));
+				if (miss.length) throw new Error('展开前缺少文案: ' + miss.join(', '));
 			}
 
 			let extraTree = null;
 
-			if (c.after)
-				extraTree = await c.after(view);
+			if (c.after) extraTree = await c.after(view);
 
 			const text = collectText(tree).join(' ') + ' ' + (extraTree ? collectText(extraTree).join(' ') : '');
 			globalThis.__lastText = text;
@@ -284,47 +384,48 @@ for (const spec of VIEWS) {
 				throw new Error('缺少容器类: ' + c.requireClass);
 
 			const missing = c.expect.filter(s => !text.includes(s));
-			if (missing.length)
-				throw new Error('渲染结果缺少文案: ' + missing.join(', '));
+			if (missing.length) throw new Error('渲染结果缺少文案: ' + missing.join(', '));
 
 			if (c.orderNodes) {
 				// 把渲染树按深度优先拍平为文本序列，只保留非空短文本（表单标签/表头）
 				const flat = [];
 				(function walk(node) {
-					if (!node || typeof node !== 'object')
-						return;
-					if (Array.isArray(node))
-						return node.forEach(walk);
+					if (!node || typeof node !== 'object') return;
+					if (Array.isArray(node)) return node.forEach(walk);
 					const own = node.children || [];
-					const inner = own.filter(x => typeof x === 'string').join(' ').trim();
-					if (inner)
-						flat.push(inner);
+					const inner = own
+						.filter(x => typeof x === 'string')
+						.join(' ')
+						.trim();
+					if (inner) flat.push(inner);
 					own.forEach(walk);
 				})(tree);
 
-				const orderTree = (c.orderTree === 'extra' && extraTree) ? extraTree : tree;
-				const flatSrc = orderTree === tree ? flat : (function flatten(t) {
-					const out = [];
-					(function walk(node) {
-						if (!node || typeof node !== 'object')
-							return;
-						if (Array.isArray(node))
-							return node.forEach(walk);
-						const own = node.children || [];
-						const inner = own.filter(x => typeof x === 'string').join(' ').trim();
-						if (inner)
-							out.push(inner);
-						own.forEach(walk);
-					})(t);
-					return out;
-				})(orderTree);
+				const orderTree = c.orderTree === 'extra' && extraTree ? extraTree : tree;
+				const flatSrc =
+					orderTree === tree
+						? flat
+						: (function flatten(t) {
+								const out = [];
+								(function walk(node) {
+									if (!node || typeof node !== 'object') return;
+									if (Array.isArray(node)) return node.forEach(walk);
+									const own = node.children || [];
+									const inner = own
+										.filter(x => typeof x === 'string')
+										.join(' ')
+										.trim();
+									if (inner) out.push(inner);
+									own.forEach(walk);
+								})(t);
+								return out;
+							})(orderTree);
 
-				for (const seq of (c.orderSequences || [ c.orderNodes ])) {
+				for (const seq of c.orderSequences || [c.orderNodes]) {
 					let at = -1;
 					for (const needle of seq) {
 						const next = flatSrc.findIndex((t, i) => i > at && t.indexOf(needle) >= 0);
-						if (next < 0)
-							throw new Error('顺序断言失败：找不到「' + needle + '」');
+						if (next < 0) throw new Error('顺序断言失败：找不到「' + needle + '」');
 						at = next;
 					}
 				}
@@ -334,28 +435,39 @@ for (const spec of VIEWS) {
 				let pos = -1;
 				for (const needle of c.expectOrder) {
 					const at = text.indexOf(needle, pos + 1);
-					if (at < 0)
-						throw new Error('顺序断言失败：找不到「' + needle + '」');
+					if (at < 0) throw new Error('顺序断言失败：找不到「' + needle + '」');
 					if (at < pos)
-						throw new Error('顺序断言失败：「' + needle + '」应出现在「' + c.expectOrder[c.expectOrder.indexOf(needle) - 1] + '」之后');
+						throw new Error(
+							'顺序断言失败：「' +
+								needle +
+								'」应出现在「' +
+								c.expectOrder[c.expectOrder.indexOf(needle) - 1] +
+								'」之后'
+						);
 					pos = at;
 				}
 			}
 
 			for (const handler of spec.handlers || []) {
-				const name = (typeof handler === 'string') ? handler : handler.name;
-				const args = (typeof handler === 'string') ? [ fakeEv() ] : handler.args;
+				const name = typeof handler === 'string' ? handler : handler.name;
+				const args = typeof handler === 'string' ? [fakeEv()] : handler.args;
 
-				if (typeof view[name] === 'function')
-					await view[name](...args);
+				if (typeof view[name] === 'function') await view[name](...args);
 			}
 
-			console.log(`ok   ${spec.file} · ${c.name}（文本 ${text.length} 字符，通知 ${notifications.length}，弹窗 +${modals.shown}/-${modals.hidden}，poll +${polled.added}/-${polled.removed}）`);
+			console.log(
+				`ok   ${spec.file} · ${c.name}（文本 ${text.length} 字符，通知 ${notifications.length}，弹窗 +${modals.shown}/-${modals.hidden}，poll +${polled.added}/-${polled.removed}）`
+			);
 			passed++;
 		} catch (e) {
 			console.log(`FAIL ${spec.file} · ${c.name}: ${e.message}`);
 			if (c.debug !== false)
-				console.log('     文本片段: ' + String(globalThis.__lastText || '').slice(0, 900).replace(/\s+/g, ' '));
+				console.log(
+					'     文本片段: ' +
+						String(globalThis.__lastText || '')
+							.slice(0, 900)
+							.replace(/\s+/g, ' ')
+				);
 			failed++;
 		}
 	}
