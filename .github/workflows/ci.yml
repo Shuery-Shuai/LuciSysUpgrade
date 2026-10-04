@@ -56,9 +56,9 @@ jobs:
                   docker run --rm -v "$PWD:/src:ro" openwrt/rootfs:x86_64-25.12-SNAPSHOT sh -c '
                     apk update >/dev/null 2>&1 && apk add --no-cache ucode >/dev/null 2>&1
                     fail=0
-                    for f in $(find /src/luci-app-sysupgrade -type f \( -name "*.uc" -o -name lucisysupgrade \)); do
+                    for f in $(find /src/luci-app-sysupgrade -type f \( -name "*.uc" -o -path "*/usr/bin/lucisysupgrade" -o -path "*/rpcd/ucode/lucisysupgrade" \)); do
                       ucode -c "$f" > /dev/null || { echo "FAIL $f"; fail=1; }
                     done
-                    echo "检查了 $(find /src/luci-app-sysupgrade -type f \( -name "*.uc" -o -name lucisysupgrade \) | wc -l) 个文件"
+                    echo "检查了 $(find /src/luci-app-sysupgrade -type f \( -name "*.uc" -o -path "*/usr/bin/lucisysupgrade" -o -path "*/rpcd/ucode/lucisysupgrade" \) | wc -l) 个 ucode 文件"
                     exit $fail
                   '
