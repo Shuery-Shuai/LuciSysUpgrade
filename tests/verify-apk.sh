@@ -19,11 +19,18 @@ echo "== apk manifest（扁平文件清单）=="
 DUMP=$($SSH "apk --allow-untrusted manifest $REMOTE 2>/dev/null")
 echo "  文件数: $(printf '%s' "$DUMP" | grep -c sha256 || true)"
 
-echo "== 逐个断言关键文件 ==" 
-for want in "usr/share/ucode/lucisysupgrade/util.uc" "usr/bin/lucisysupgrade" \
-            "usr/share/rpcd/ucode/lucisysupgrade" "luci-static/resources/view/sysupgrade/overview.js" \
-            "lucisysupgrade.zh-cn.lmo" "etc/config/lucisysupgrade" \
-            "menu.d/luci-app-sysupgrade.json" "acl.d/luci-app-sysupgrade.json"; do
+echo "== 逐个断言关键文件 =="
+# 语言包（luci-i18n-*）只应含 lmo；主包应含代码、视图、配置、菜单与 ACL
+case "$(basename "$APK")" in
+	*luci-i18n-*)
+		WANT="usr/lib/lua/luci/i18n/lucisysupgrade.zh-cn.lmo"
+		;;
+	*)
+		WANT="usr/share/ucode/lucisysupgrade/util.uc usr/bin/lucisysupgrade usr/share/rpcd/ucode/lucisysupgrade www/luci-static/resources/view/sysupgrade/overview.js etc/config/lucisysupgrade usr/share/luci/menu.d/luci-app-sysupgrade.json usr/share/rpcd/acl.d/luci-app-sysupgrade.json"
+		;;
+esac
+
+for want in $WANT; do
 	case "$DUMP" in
 		*"$want"*) echo "  ok   $want";;
 		*) echo "  FAIL 缺少 $want"; fail=1;;
