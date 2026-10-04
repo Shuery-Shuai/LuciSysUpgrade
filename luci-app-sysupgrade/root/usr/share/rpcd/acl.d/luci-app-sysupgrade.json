@@ -4,13 +4,13 @@
 		"read": {
 			"uci": [ "lucisysupgrade" ],
 			"ubus": {
-				"lucisysupgrade": [ "status", "sources", "check", "version" ]
+				"lucisysupgrade": [ "status", "sources", "check", "version", "download_status" ]
 			}
 		},
 		"write": {
 			"uci": [ "lucisysupgrade" ],
 			"ubus": {
-				"lucisysupgrade": [ "set_active", "set_options" ]
+				"lucisysupgrade": [ "set_active", "set_options", "download", "cancel", "cleanup" ]
 			}
 		}
 	}

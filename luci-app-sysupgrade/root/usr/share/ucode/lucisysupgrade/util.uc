@@ -68,6 +68,10 @@ function parse_json(text) {
 	}
 }
 
+function lc_trim(v) {
+	return lc(trim(v ?? ''));
+}
+
 function file_trim(path) {
 	return trim(fs.readfile(path) ?? '');
 }
@@ -124,6 +128,7 @@ return {
 	http_get: http_get,
 	read_kv: read_kv,
 	parse_json: parse_json,
+	lc_trim: lc_trim,
 	file_trim: file_trim,
 	hostname: hostname,
 	now_epoch: now_epoch,

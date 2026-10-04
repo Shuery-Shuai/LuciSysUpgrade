@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// 无浏览器渲染检查：在 Node 里按 luci.js 的加载规则把视图的 'require ... as ...' 指令
-// 绑定成参数，再跑 load() / render() / 事件处理器。
+// 无浏览器渲染检查：按 luci.js 的加载规则把视图的 'require … as …' 指令绑成参数，
+// 再用桩跑 load() / render() / 事件处理器，覆盖下载状态的各个分支。
 // 目的：在没有浏览器的环境里抓住 ReferenceError、字段名写错、模块路径写错这类问题。
 // 用法: node tests/render-check.mjs
 //
@@ -15,18 +15,11 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const RES = path.join(ROOT, 'luci-app-sysupgrade/htdocs/luci-static/resources');
 const FIX = path.join(ROOT, 'tests/fixtures');
 
-const fixtures = {
-	status: JSON.parse(fs.readFileSync(path.join(FIX, 'status.json'), 'utf8')),
-	sources: JSON.parse(fs.readFileSync(path.join(FIX, 'sources.json'), 'utf8'))
-};
+const readFixture = name => JSON.parse(fs.readFileSync(path.join(FIX, name), 'utf8'));
+const baseStatus = readFixture('status.json');
+const baseSources = readFixture('sources.json');
 
-const VIEWS = [
-	{ file: 'view/sysupgrade/overview.js', data: 'status', methods: { status: fixtures.status, check: fixtures.status.last }, expect: [ 'System Update', 'Check for updates' ] },
-	{ file: 'view/sysupgrade/sources.js', data: 'sources', methods: { sources: fixtures.sources, set_active: { ok: true } }, expect: [ 'Sources', 'Save and apply' ] },
-	{ file: 'view/sysupgrade/settings.js', data: 'status', methods: { status: fixtures.status, set_options: { ok: true } }, expect: [ 'Settings', 'Unattended level' ] }
-];
-
-// 与 luci.js 完全相同的指令正则（modules/luci-base/htdocs/luci-static/resources/luci.js）
+// 与 luci.js 完全相同的指令正则
 const REQUIRE_RE = /^require[ \t]+(\S+)(?:[ \t]+as[ \t]+([a-zA-Z_]\S*))?$/;
 
 function parseDirectives(source) {
@@ -35,9 +28,8 @@ function parseDirectives(source) {
 	let m;
 	while ((m = re.exec(source)) !== null) {
 		const d = REQUIRE_RE.exec(m[2]);
-		if (!d)
-			continue;
-		deps.push({ dep: d[1], as: d[2] || d[1].replace(/[^a-zA-Z0-9_]/g, '_') });
+		if (d)
+			deps.push({ dep: d[1], as: d[2] || d[1].replace(/[^a-zA-Z0-9_]/g, '_') });
 	}
 	return deps;
 }
@@ -57,10 +49,9 @@ function collectText(node, out = []) {
 }
 
 function makeContext(methods) {
-	const declared = [];
 	const notifications = [];
+	const polled = { added: 0, removed: 0 };
 
-	// 最小 DOM 语义：视图里会用到 appendChild / removeChild / firstChild 做局部重渲染
 	const makeEl = (tag, attrs, children) => {
 		const el = {
 			tag,
@@ -93,6 +84,7 @@ function makeContext(methods) {
 		L: {
 			resource: p => '/luci-static/resources/' + p,
 			url: (...p) => '/cgi-bin/luci/' + p.join('/'),
+			bind: (fn, self, ...args) => fn.bind(self, ...args),
 			env: {}
 		},
 		Date, JSON, Math, Object, Array, Promise, console
@@ -101,7 +93,6 @@ function makeContext(methods) {
 	ctx.globalThis = ctx;
 	vm.createContext(ctx);
 
-	// LuCI 在浏览器里给 String 加了 format()；桩必须同样提供，否则会误报
 	vm.runInContext(`
 		String.prototype.format = function () {
 			const args = Array.from(arguments);
@@ -115,23 +106,22 @@ function makeContext(methods) {
 			createHandlerFn: (self, name) => (...args) => self[name](...args),
 			addNotification: (title, children, ...classes) => notifications.push({ title, children, classes })
 		},
-		rpc: {
-			declare: spec => {
-				declared.push(spec);
-				return (...args) => Promise.resolve(methods[spec.method]);
-			}
+		rpc: { declare: spec => () => Promise.resolve(methods[spec.method]) },
+		poll: {
+			add: () => { polled.added++; },
+			remove: () => { polled.removed++; },
+			active: () => false, call: () => {}, start: () => {}, stop: () => {}
 		}
 	};
 
-	return { ctx, modules, declared, notifications };
+	return { ctx, modules, notifications, polled };
 }
 
-// 用与 luci.js 相同的 IIFE + 参数绑定方式求值模块文件
 function evalModule(ctx, modules, file) {
 	const source = fs.readFileSync(file, 'utf8');
 	const deps = parseDirectives(source);
-
 	const args = [];
+
 	for (const d of deps) {
 		if (!(d.dep in modules))
 			throw new Error(`模块 ${d.dep} 没有桩（视图要求了它）`);
@@ -142,39 +132,73 @@ function evalModule(ctx, modules, file) {
 	return { value: fn(...args.map(a => a.value)), deps: deps.map(d => `${d.dep} as ${d.as}`) };
 }
 
+const fakeEv = () => ({ currentTarget: { disabled: false, classList: { add() {}, remove() {} } }, preventDefault() {} });
+const FILE = '/tmp/lucisysupgrade/immortalwrt-mediatek-filogic-bananapi_bpi-r4-squashfs-sysupgrade.itb';
+
+const VIEWS = [
+	{
+		file: 'view/sysupgrade/overview.js',
+		base: { status: baseStatus },
+		extra: { download: { ok: true, state: 'running', received: 1024, size: 2048, percent: 50 }, download_status: { state: 'cancelled' }, cancel: { ok: true }, cleanup: { ok: true }, check: baseStatus.last },
+		handlers: [ 'handleCheck', 'handleDownload', 'handleCancel', 'handleCleanup' ],
+		cases: [
+			{ name: '无下载', data: baseStatus, expect: [ 'Download image' ] },
+			{ name: '下载中', data: { ...baseStatus, download: { state: 'running', received: 5160906, size: 23593558, percent: 21 } }, expect: [ 'Cancel', 'Downloading', '21%' ] },
+			{ name: '已校验', data: { ...baseStatus, download: { state: 'verified', file: FILE, size: 23593558, sha256: 'a'.repeat(64) } }, expect: [ 'Downloaded and verified', 'Delete file' ] },
+			{ name: '失败', data: { ...baseStatus, download: { state: 'failed', error: 'curl exit 22' } }, expect: [ 'Download failed', 'Retry download', 'curl exit 22' ] },
+			{ name: '已取消', data: { ...baseStatus, download: { state: 'cancelled' } }, expect: [ 'Resume download', 'Download cancelled' ] }
+		]
+	},
+	{
+		file: 'view/sysupgrade/sources.js',
+		base: { sources: baseSources },
+		extra: { set_active: { ok: true } },
+		handlers: [ 'handleSave' ],
+		cases: [ { name: '源列表', data: baseSources, expect: [ 'Sources', 'Save and apply' ] } ]
+	},
+	{
+		file: 'view/sysupgrade/settings.js',
+		base: { status: baseStatus },
+		extra: { set_options: { ok: true } },
+		handlers: [ 'handleSave' ],
+		cases: [ { name: '设置', data: baseStatus, expect: [ 'Settings', 'Unattended level' ] } ]
+	}
+];
+
 let failed = 0;
+let passed = 0;
 
 for (const spec of VIEWS) {
-	const { ctx, modules, notifications } = makeContext(spec.methods);
+	for (const c of spec.cases) {
+		const { ctx, modules, notifications, polled } = makeContext({ ...spec.base, ...spec.extra, status: c.data });
 
-	try {
-		// 先加载我们自己写的公共模块，保证它也能被求值（等价于浏览器里 require 它）
-		modules['sysupgrade.format'] = evalModule(ctx, { ...modules, 'sysupgrade.format': null }, path.join(RES, 'sysupgrade/format.js')).value;
+		try {
+			modules['sysupgrade.format'] = evalModule(ctx, { ...modules, 'sysupgrade.format': null }, path.join(RES, 'sysupgrade/format.js')).value;
 
-		const { value: view, deps } = evalModule(ctx, modules, path.join(RES, spec.file));
+			const { value: view } = evalModule(ctx, modules, path.join(RES, spec.file));
+			if (typeof view.load !== 'function' || typeof view.render !== 'function')
+				throw new Error('导出的对象缺少 load()/render()');
 
-		if (typeof view.load !== 'function' || typeof view.render !== 'function')
-			throw new Error('导出的对象缺少 load()/render()');
+			const data = await view.load();
+			const text = collectText(view.render(data)).join(' ');
 
-		const data = await view.load();
-		const tree = view.render(spec.data === 'sources' ? data : data);
-		const text = collectText(tree).join(' ');
+			const missing = c.expect.filter(s => !text.includes(s));
+			if (missing.length)
+				throw new Error('渲染结果缺少文案: ' + missing.join(', '));
 
-		const missing = spec.expect.filter(s => !text.includes(s));
-		if (missing.length)
-			throw new Error('渲染结果缺少文案: ' + missing.join(', '));
+			for (const handler of spec.handlers || []) {
+				if (typeof view[handler] === 'function')
+					await view[handler](fakeEv());
+			}
 
-		for (const handler of [ 'handleCheck', 'handleSave' ]) {
-			if (typeof view[handler] === 'function')
-				await view[handler]({ currentTarget: { disabled: false, classList: { add() {}, remove() {} } }, preventDefault() {} });
+			console.log(`ok   ${spec.file} · ${c.name}（文本 ${text.length} 字符，通知 ${notifications.length}，poll +${polled.added}/-${polled.removed}）`);
+			passed++;
+		} catch (e) {
+			console.log(`FAIL ${spec.file} · ${c.name}: ${e.message}`);
+			failed++;
 		}
-
-		console.log(`ok   ${spec.file}  [${deps.join(' | ')}]  文本 ${text.length} 字符，通知 ${notifications.length} 条`);
-	} catch (e) {
-		console.log(`FAIL ${spec.file}: ${e.message}`);
-		failed++;
 	}
 }
 
-console.log(failed ? `\n${failed} 个视图未通过` : '\n所有视图渲染检查通过');
+console.log(`\n通过 ${passed} 项，失败 ${failed} 项`);
 process.exit(failed ? 1 : 0);

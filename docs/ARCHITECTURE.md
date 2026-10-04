@@ -46,11 +46,28 @@ lucisysupgrade                        │
 | `rebuild` | 同版本、不同构建 | 版本号或源码时间相同但构建标识不同 |
 | `incomparable` | 无法比较 | 探测失败或缺少可比字段 |
 
-## 状态与幂等（M2 预留）
+## 下载状态机（M2）
+
+```
+idle ──download──▶ running ──(进程组退出)──▶ verified | failed
+                     │
+                     └──cancel──▶ cancelled ──download──▶ running（续传，resumed_from>0）
+```
+
+- 落盘：`/tmp/lucisysupgrade/<镜像名>`；状态：`download.json`；退出码：`download.rc`（后台命令写）。
+- **收尾不依赖守护进程**：`status()` 发现进程组已退出就做体积/sha256 校验并投递 webhook，
+  再写回状态；因此重启 rpcd 也不会丢状态机。
+- **取消按进程组杀**（`kill -TERM -<pgid>`）：只杀组长会留下孤儿 curl 继续写文件（已实测踩坑）。
+- **续传保护**：只有 `ETag`/`Last-Modified` 与上次一致才允许 `-C -`，否则删掉残片重下；
+  判定原因写进 `resume_reason`，界面上能看到为什么没续传。
+- 启动前会清扫残留下载进程，避免两个 curl 同时写同一个文件。
+
+## 状态与幂等
 
 - 持久配置：`/etc/config/lucisysupgrade`（随 `sysupgrade -k` 备份）。
-- 运行态：`/tmp`（`lucisysupgrade.last.json`；后续下载临时文件同样放 `/tmp`，掉电即丢，天然幂等）。
-- M3 暂缓：刷写三态日志（`downloaded → flash-pending → boot-confirmed`）与 webhook 事件。
+- 运行态：`/tmp`（`lucisysupgrade.last.json`、`lucisysupgrade/download.json`）；掉电即丢，天然幂等。
+- M3 暂缓：刷写三态日志（`downloaded → flash-pending → boot-confirmed`）与刷写类 webhook 事件
+  （`download_done` 已实现）。
 
 ## 不做的事
 

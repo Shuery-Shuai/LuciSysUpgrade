@@ -222,3 +222,67 @@ msgstr "配置存放位置"
 
 msgid "Everything is stored in /etc/config/lucisysupgrade, which is preserved by sysupgrade -k together with the rest of the configuration."
 msgstr "全部配置存放在 /etc/config/lucisysupgrade，会随 sysupgrade -k 与其他配置一起保留。"
+
+# M2 下载
+msgid "Read-only detection plus image download. Nothing is flashed: this version stops after verifying the sha256."
+msgstr "只读检测 + 镜像下载。不会刷写：本版本在 sha256 校验通过后就停下。"
+
+msgid "Image download"
+msgstr "镜像下载"
+
+msgid "Downloads the candidate image to /tmp and verifies its sha256. Nothing is flashed."
+msgstr "把候选镜像下载到 /tmp 并校验 sha256，不会刷写。"
+
+msgid "Download image"
+msgstr "下载镜像"
+
+msgid "Downloading…"
+msgstr "下载中…"
+
+msgid "The file goes to /tmp (RAM). Flashing is not implemented yet, so nothing else happens when it finishes."
+msgstr "文件落在 /tmp（内存），刷写尚未实现，因此下载完成后不会有后续动作。"
+
+msgid "resumed"
+msgstr "（续传）"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Cancel failed"
+msgstr "取消失败"
+
+msgid "Cancel failed: "
+msgstr "取消失败："
+
+msgid "Downloaded and verified"
+msgstr "已下载并通过校验"
+
+msgid "The sha256 matches the one published by the source. This version does not flash anything."
+msgstr "sha256 与源站公布的一致。本版本不会刷写。"
+
+msgid "Download failed"
+msgstr "下载失败"
+
+msgid "Download failed: "
+msgstr "下载失败："
+
+msgid "Retry download"
+msgstr "重试下载"
+
+msgid "Resume download"
+msgstr "继续下载"
+
+msgid "Delete file"
+msgstr "删除文件"
+
+msgid "Downloaded file deleted."
+msgstr "已删除下载的文件。"
+
+msgid "Delete failed: "
+msgstr "删除失败："
+
+msgid "Download cancelled"
+msgstr "下载已取消"
+
+msgid "The partial file is kept, so a retry resumes instead of starting over (the ETag is compared first)."
+msgstr "已下载的部分会保留，重试时续传而不是重来（续传前会先比对 ETag）。"

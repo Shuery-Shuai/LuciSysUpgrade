@@ -1,6 +1,6 @@
 {
-	"version": "0.1.0",
-	"ts": 1791115626,
+	"version": "0.2.0",
+	"ts": 1791116747,
 	"local": {
 		"hostname": "PPUC",
 		"distribution": "ImmortalWrt",
@@ -49,8 +49,8 @@
 	},
 	"last": {
 		"ok": true,
-		"ts": 1791115332,
-		"version": "0.1.0",
+		"ts": 1791116747,
+		"version": "0.2.0",
 		"local": {
 			"hostname": "PPUC",
 			"distribution": "ImmortalWrt",
@@ -231,5 +231,9 @@
 		},
 		"unattended": 0,
 		"interval": 24
+	},
+	"download": {
+		"state": "idle",
+		"percent": 0
 	}
 }

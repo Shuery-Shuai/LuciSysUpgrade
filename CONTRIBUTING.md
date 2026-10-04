@@ -72,6 +72,8 @@
 - `tests/run-on-device.sh [ssh别名]`：把包内文件同步到路由器 `/tmp`，做全量 `ucode -c` 编译检查，
   并跑 `version / sources / status / check` 三条真机场景（官方源、自有构建站、rtfw）。
 - `tests/install-on-device.sh [ssh别名]`：装机（含 i18n 编译），`--uninstall` 卸载。
+- `tests/m2-state-machine.sh [ssh别名]`：真机验证下载状态机里**因网速太快而测不到**的分支 ——
+  续传命中/ETag 变化拒绝续传/sha256 不匹配判失败。做法是构造 `download.json` 与部分文件后调 ubus 断言。
 - macOS 打包务必带 `COPYFILE_DISABLE=1 tar --no-xattrs`，否则 `._*` 元数据文件会混进归档。
 - 逻辑改动的验收标准：在真机上跑通上述场景，且结论与预期一致（见脚本内注释）。
 
@@ -80,6 +82,6 @@
 | | 内容 | 状态 |
 |---|---|---|
 | M1 | 检测闭环：源抽象、两种 layout、判据、CLI、rpcd、LuCI 概览页 | 已完成并在真机验证 |
-| M2 | 下载与校验（`curl -C -` 续传、`profiles.json.images[].sha256`、`file_size_limits.image`） | 待做 |
+| M2 | 下载与校验（`curl -C -` 续传、`profiles.json.images[].sha256`、`file_size_limits.image`） | 已完成并在真机验证 |
 | M3 | 刷写（`sysupgrade -k`）、三态刷写日志、webhook | **暂缓** |
 | M4 | 定时检测（`/etc/crontabs/root` 标记块）、ipk+apk 双产物 CI | 待做 |

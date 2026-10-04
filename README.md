@@ -3,8 +3,10 @@
 检测 ImmortalWrt / OpenWrt 系统更新的 LuCI 应用。**只做检测**：读取本机构建标识，
 与配置的发布源比对，给出「有更新 / 已是最新 / 远端更旧（可降级）/ 同版本不同构建 / 无法比较」。
 
-> 当前里程碑：**M1（检测闭环）** 已在 Banana Pi BPI-R4（ImmortalWrt SNAPSHOT，apk-tools 3.0.5）上验证通过。
-> M2（下载与校验）、M4（定时检测 + 双产物 CI）待做；**M3（刷写）暂不实现**。
+> 当前里程碑：**M1（检测闭环）与 M2（下载 + sha256/体积校验）** 均已在 Banana Pi BPI-R4
+> （ImmortalWrt SNAPSHOT，apk-tools 3.0.5）上验证通过：下载 28.8 MB 镜像并与源站公布值比对一致，
+> 续传/ETag 变化/sha256 不匹配等分支由 `tests/m2-state-machine.sh` 断言覆盖。
+> M4（定时检测 + 双产物 CI）待做；**M3（刷写）暂不实现**。
 
 ## 它做什么 / 不做什么
 
@@ -13,7 +15,8 @@
 | 做 | 读取本机 `BUILD_ID` / `OPENWRT_BUILD_DATE`，探测远端 `version.buildinfo` / `profiles.json`，判定更新状态 |
 | 做 | 多源管理，但**同一时刻只激活一个源**（切换式） |
 | 做 | 按 `board_name` 在远端 `profiles.json.supported_devices` 中自动匹配 profile |
-| 不做 | 下载镜像、校验镜像、调用 `sysupgrade`、改动配置（M3 暂缓） |
+| 做 | 下载候选镜像到 `/tmp`（`curl -C -` 续传，续传前比对 ETag/Last-Modified）、按源站 sha256 校验、可取消/清理 |
+| 不做 | 调用 `sysupgrade` 刷写（M3 暂缓） |
 | 不做 | 依赖任何非官方字段（不读 HTTP `Last-Modified`、不读文件 mtime、不解析文件名日期） |
 
 ## 判据

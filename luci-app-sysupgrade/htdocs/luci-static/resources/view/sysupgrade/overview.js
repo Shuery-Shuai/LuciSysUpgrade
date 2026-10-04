@@ -2,10 +2,15 @@
 'require view';
 'require rpc';
 'require ui';
+'require poll';
 'require sysupgrade.format as fmt';
 
 var callStatus = rpc.declare({ object: 'lucisysupgrade', method: 'status' });
 var callCheck = rpc.declare({ object: 'lucisysupgrade', method: 'check', params: [ 'source', 'channel' ] });
+var callDownload = rpc.declare({ object: 'lucisysupgrade', method: 'download', params: [ 'source', 'channel' ] });
+var callDownloadStatus = rpc.declare({ object: 'lucisysupgrade', method: 'download_status' });
+var callCancel = rpc.declare({ object: 'lucisysupgrade', method: 'cancel' });
+var callCleanup = rpc.declare({ object: 'lucisysupgrade', method: 'cleanup' });
 
 function sheet() {
 	return E('link', { 'rel': 'stylesheet', 'href': L.resource('sysupgrade/sysupgrade.css') });
@@ -14,7 +19,7 @@ function sheet() {
 function replace(node, children) {
 	while (node.firstChild)
 		node.removeChild(node.firstChild);
-	children.forEach(function(c) {
+	(children || []).forEach(function(c) {
 		if (c)
 			node.appendChild(c);
 	});
@@ -30,13 +35,14 @@ return view.extend({
 		var loc = status.local || {};
 
 		this.activeSource = conf.active_source || '';
+		this.download = status.download || { state: 'idle' };
 		this.resultNode = E('div', {}, E('p', { 'class': 'lsu-muted' }, _('No check has been run yet.')));
 
 		var view = E('div', {}, [
 			sheet(),
 			E('h2', {}, _('System Update')),
 			E('p', { 'class': 'lsu-muted' },
-				_('Read-only detection: the local build id is compared against the remote release metadata. This version does not download or flash anything.')),
+				_('Read-only detection plus image download. Nothing is flashed: this version stops after verifying the sha256.')),
 
 			E('div', { 'class': 'lsu-toolbar' }, [
 				E('button', {
@@ -55,12 +61,17 @@ return view.extend({
 				fmt.stat(_('Distribution'), (loc.distribution || '') + ' ' + (loc.version || ''))
 			]),
 
+			this.downloadNode = E('div', {}, this.buildDownload()),
+
 			E('h3', {}, _('Result')),
 			this.resultNode
 		]);
 
 		if (status.last && status.last.verdict)
 			replace(this.resultNode, this.buildResult(status.last, true));
+
+		if (this.download.state === 'running')
+			this.startPolling();
 
 		return view;
 	},
@@ -128,6 +139,96 @@ return view.extend({
 		return nodes;
 	},
 
+	buildDownload: function() {
+		var d = this.download || { state: 'idle' };
+		var nodes = [ E('h3', {}, _('Image download')) ];
+
+		switch (d.state) {
+		case 'running':
+			nodes.push(E('div', { 'class': 'lsu-bar' }, E('span', { 'style': 'width:' + (d.percent || 0) + '%' })));
+			nodes.push(E('div', { 'class': 'lsu-muted' },
+				'%s / %s（%d%%）%s'.format(fmt.fmtSize(d.received), fmt.fmtSize(d.size), d.percent || 0,
+					d.resumed_from ? _('resumed') : '')));
+			nodes.push(fmt.callout('', _('Downloading…'),
+				_('The file goes to /tmp (RAM). Flashing is not implemented yet, so nothing else happens when it finishes.')));
+			nodes.push(E('div', { 'class': 'lsu-toolbar' }, [
+				E('button', { 'class': 'btn cbi-button cbi-button-reset', 'click': ui.createHandlerFn(this, 'handleCancel') }, _('Cancel'))
+			]));
+			break;
+
+		case 'verified':
+			nodes.push(fmt.callout('success', _('Downloaded and verified'),
+				_('The sha256 matches the one published by the source. This version does not flash anything.')));
+			nodes.push(fmt.kvTable([ _('Item'), _('Value') ], [
+				[ _('File'), d.file ],
+				[ _('Size'), fmt.fmtSize(d.size) ],
+				[ 'sha256', d.sha256 ]
+			]));
+			nodes.push(E('div', { 'class': 'lsu-toolbar' }, [
+				E('button', { 'class': 'btn cbi-button cbi-button-reset', 'click': ui.createHandlerFn(this, 'handleCleanup') }, _('Delete file'))
+			]));
+			break;
+
+		case 'failed':
+			nodes.push(fmt.callout('danger', _('Download failed'), d.error || _('Unknown error')));
+			nodes.push(E('div', { 'class': 'lsu-toolbar' }, [
+				E('button', { 'class': 'btn cbi-button cbi-button-action', 'click': ui.createHandlerFn(this, 'handleDownload') }, _('Retry download')),
+				E('button', { 'class': 'btn cbi-button cbi-button-reset', 'click': ui.createHandlerFn(this, 'handleCleanup') }, _('Delete file'))
+			]));
+			break;
+
+		case 'cancelled':
+			nodes.push(fmt.callout('warning', _('Download cancelled'),
+				_('The partial file is kept, so a retry resumes instead of starting over (the ETag is compared first).')));
+			nodes.push(E('div', { 'class': 'lsu-toolbar' }, [
+				E('button', { 'class': 'btn cbi-button cbi-button-action', 'click': ui.createHandlerFn(this, 'handleDownload') }, _('Resume download')),
+				E('button', { 'class': 'btn cbi-button cbi-button-reset', 'click': ui.createHandlerFn(this, 'handleCleanup') }, _('Delete file'))
+			]));
+			break;
+
+		default:
+			nodes.push(E('div', { 'class': 'lsu-muted' },
+				_('Downloads the candidate image to /tmp and verifies its sha256. Nothing is flashed.')));
+			nodes.push(E('div', { 'class': 'lsu-toolbar' }, [
+				E('button', { 'class': 'btn cbi-button cbi-button-action', 'click': ui.createHandlerFn(this, 'handleDownload') }, _('Download image'))
+			]));
+		}
+
+		return nodes;
+	},
+
+	renderDownload: function() {
+		if (this.downloadNode)
+			replace(this.downloadNode, this.buildDownload());
+	},
+
+	startPolling: function() {
+		if (this.pollFn)
+			return;
+
+		this.pollFn = L.bind(this.pollDownload, this);
+		poll.add(this.pollFn);
+	},
+
+	stopPolling: function() {
+		if (!this.pollFn)
+			return;
+
+		poll.remove(this.pollFn);
+		this.pollFn = null;
+	},
+
+	pollDownload: function() {
+		var self = this;
+
+		return callDownloadStatus().then(function(d) {
+			self.download = d || { state: 'idle' };
+			self.renderDownload();
+			if (self.download.state !== 'running')
+				self.stopPolling();
+		});
+	},
+
 	handleCheck: function(ev) {
 		var self = this;
 		var btn = ev.currentTarget;
@@ -142,6 +243,47 @@ return view.extend({
 		}).finally(function() {
 			btn.disabled = false;
 			btn.classList.remove('spinning');
+		});
+	},
+
+	handleDownload: function() {
+		var self = this;
+
+		return callDownload(this.activeSource, '').then(function(res) {
+			if (!res || res.ok === false)
+				throw new Error((res && res.error) || _('Download failed'));
+
+			self.download = res;
+			self.renderDownload();
+			if (res.state === 'running')
+				self.startPolling();
+		}).catch(function(err) {
+			ui.addNotification(null, E('p', {}, _('Download failed: ') + (err.message || err)), 'error');
+		});
+	},
+
+	handleCancel: function() {
+		var self = this;
+
+		return callCancel().then(function(res) {
+			if (!res || res.ok === false)
+				throw new Error((res && res.error) || _('Cancel failed'));
+
+			return self.pollDownload();
+		}).catch(function(err) {
+			ui.addNotification(null, E('p', {}, _('Cancel failed: ') + (err.message || err)), 'error');
+		});
+	},
+
+	handleCleanup: function() {
+		var self = this;
+
+		return callCleanup().then(function() {
+			self.download = { state: 'idle' };
+			self.renderDownload();
+			ui.addNotification(null, E('p', {}, _('Downloaded file deleted.')), 'info');
+		}).catch(function(err) {
+			ui.addNotification(null, E('p', {}, _('Delete failed: ') + (err.message || err)), 'error');
 		});
 	},
 

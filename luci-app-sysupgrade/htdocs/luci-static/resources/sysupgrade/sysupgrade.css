@@ -120,3 +120,19 @@
 	cursor: pointer;
 	font-weight: 600;
 }
+
+/* 下载进度条 */
+.lsu-bar {
+	height: 0.7rem;
+	border-radius: 999px;
+	background: rgba(127, 127, 127, 0.22);
+	overflow: hidden;
+	margin: 0.4rem 0;
+}
+
+.lsu-bar > span {
+	display: block;
+	height: 100%;
+	background: #2563eb;
+	transition: width 0.3s ease;
+}

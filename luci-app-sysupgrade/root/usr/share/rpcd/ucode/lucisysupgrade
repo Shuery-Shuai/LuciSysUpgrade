@@ -2,8 +2,8 @@
 'use strict';
 
 // rpcd ubus 对象：lucisysupgrade
-// 只读：version / status / sources / check
-// 写：  set_active（切换唯一激活源）/ set_options（无人值守档位、间隔、webhook）
+// 只读：version / status / sources / check / download_status
+// 写：  set_active / set_options / download / cancel / cleanup
 
 let util = require('lucisysupgrade.util');
 let local = require('lucisysupgrade.local');
@@ -11,9 +11,10 @@ let config = require('lucisysupgrade.config');
 let source = require('lucisysupgrade.source');
 let verdict = require('lucisysupgrade.verdict');
 let state = require('lucisysupgrade.state');
+let download = require('lucisysupgrade.download');
 let uci = require('uci');
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 const CONFIG = 'lucisysupgrade';
 
 function arg(req, name) {
@@ -33,7 +34,8 @@ function do_status() {
 		ts: util.now_epoch(),
 		local: local.identity(),
 		config: config.load(),
-		last: state.load_last()
+		last: state.load_last(),
+		download: download.status()
 	};
 }
 
@@ -48,19 +50,21 @@ function do_sources() {
 	};
 }
 
-function do_check(req) {
-	let conf = config.load();
-	let name = arg(req, 'source');
-	let channel = arg(req, 'channel');
-	let src = length(name)
+function pick_source(conf, name) {
+	return length(name)
 		? (filter(conf.sources, function (s) { return s.name == name; })[0] ?? null)
 		: config.active(conf);
+}
+
+function do_check(req) {
+	let conf = config.load();
+	let src = pick_source(conf, arg(req, 'source'));
 	let loc = local.identity();
 
 	if (src == null)
 		return { ok: false, ts: util.now_epoch(), error: '没有可用的源', local: loc, remote: null, verdict: verdict.compare(loc, null) };
 
-	let remote = source.probe(src, loc, channel);
+	let remote = source.probe(src, loc, arg(req, 'channel'));
 	let result = {
 		ok: remote.ok,
 		ts: util.now_epoch(),
@@ -96,9 +100,10 @@ function do_set_active(req) {
 
 function do_set_options(req) {
 	let conf = config.load();
-	let level = opt_int(req?.args?.unattended ?? req?.unattended, conf.unattended);
-	let interval = opt_int(req?.args?.interval ?? req?.interval, conf.interval);
-	let webhook = trim(req?.args?.webhook ?? req?.webhook ?? conf.webhook);
+	let a = req?.args ?? req ?? {};
+	let level = opt_int(a.unattended, conf.unattended);
+	let interval = opt_int(a.interval, conf.interval);
+	let webhook = trim(a.webhook ?? conf.webhook);
 
 	if (level < 0 || level > 2)
 		return { ok: false, error: 'unattended 必须是 0/1/2' };
@@ -123,6 +128,10 @@ return {
 		status: { call: do_status },
 		sources: { call: do_sources },
 		check: { args: { source: '', channel: '' }, call: do_check },
+		download_status: { call: function () { return download.status(); } },
+		download: { args: { source: '', channel: '' }, call: function (req) { return download.start(arg(req, 'source'), arg(req, 'channel')); } },
+		cancel: { call: function () { return download.cancel(); } },
+		cleanup: { call: function () { return download.cleanup(); } },
 		set_active: { args: { source: '' }, call: do_set_active },
 		set_options: { args: { unattended: '', interval: '', webhook: '' }, call: do_set_options }
 	}
